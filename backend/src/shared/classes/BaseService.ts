@@ -29,8 +29,25 @@ export abstract class BaseService {
         await session.endSession();
         return result;
       } catch (error: any) {
-        if (session.inTransaction()) await session.abortTransaction();
+        if (session.inTransaction()) {
+          try {
+            await session.abortTransaction();
+          } catch (abortErr) {
+            // Ignore abort errors on standalone instances
+          }
+        }
         await session.endSession();
+
+        const isReplicaSetError =
+          error?.message?.includes('replica set member or mongos') ||
+          error?.code === 20 ||
+          error?.codeName === 'IllegalOperation';
+
+        if (isReplicaSetError) {
+          console.warn('⚠️ MongoDB instance does not support transactions (standalone/memory DB). Running operation without transaction...');
+          return await operation(undefined as any);
+        }
+
         const isTransient =
           Array.isArray(error?.errorLabels) &&
           error.errorLabels.includes('TransientTransactionError');

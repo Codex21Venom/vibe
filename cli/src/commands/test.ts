@@ -7,7 +7,7 @@ function runTestProcess(name: string, cwd: string): boolean {
   console.log(`🧪 Running ${name} tests...`);
 
   const isWindows = os.platform() === "win32";
-  const result = spawnSync("pnpm", ["run", "test:ci"], {
+  const result = spawnSync("npm", ["run", "test:ci"], {
     cwd,
     stdio: "inherit",
     shell: isWindows

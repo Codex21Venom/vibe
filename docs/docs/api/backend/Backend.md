@@ -155,7 +155,7 @@ backend/
 ## Testing
 
 - Uses `vitest` for unit and integration tests.
-- Run tests with `pnpm test`.
+- Run tests with `npm test`.
 
 ## Deployment
 

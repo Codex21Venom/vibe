@@ -15,8 +15,10 @@ import { Cohort } from '#root/modules/courses/classes/index.js';
 
 export interface IUser {
   _id?: string | ObjectId | null;
-  firebaseUID: string;
+  firebaseUID?: string;
   email: string;
+  password?: string;
+  authProvider?: 'local' | 'google';
   firstName: string;
   lastName?: string;
   avatar?: string;

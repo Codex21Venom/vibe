@@ -17,10 +17,10 @@ And all set! Now, you can call for any tool inside of your AI Agent Mode. If nee
 
 ## Instructions for manual installation
 ### Install `openapi-mcp-generator`
-Install the OpenAPI MCP generator using pnpm:
+Install the OpenAPI MCP generator using npm:
 
 ```bash
-pnpm install openapi-mcp-generator
+npm install -g openapi-mcp-generator
 ```
 
 ### Generating MCP Server
@@ -45,7 +45,7 @@ Now, to configure the MCP server with github copilot
 1. Press <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>P</kbd>
 2. Search and click on `MCP: Add Server...`. 
 3. Select the type of MCP server you want to connect. In our scenario, it will be an stdio server
-4. Type in `pnpm --dir ${workspaceFolder}/mcp start`
+4. Type in `npm --prefix ${workspaceFolder}/mcp run start`
 5. Type any name you want for this mcp server.o
 
 ### Settings Check

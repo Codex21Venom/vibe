@@ -1,13 +1,13 @@
 // Types for AnomalyController
 
 export enum AnomalyType {
-  VOICE_DETECTION = 'voiceDetection',
-  NO_FACE = 'no_face',
-  MULTIPLE_FACES = 'multiple_faces',
+  VOICE_DETECTION = 'VOICE_DETECTION',
+  NO_FACE = 'NO_FACE',
+  MULTIPLE_FACES = 'MULTIPLE_FACES',
   BLUR_DETECTION = 'BLUR_DETECTION',
-  FOCUS = 'focus',
-  HAND_GESTURE_DETECTION = 'handGestureDetection',
-  FACE_RECOGNITION = 'faceRecognition',
+  FOCUS = 'FOCUS',
+  HAND_GESTURE_DETECTION = 'HAND_GESTURE_DETECTION',
+  FACE_RECOGNITION = 'FACE_RECOGNITION',
 
   VIRTUAL_CAMERA = 'VIRTUAL_CAMERA',
 }

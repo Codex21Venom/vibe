@@ -1,4 +1,4 @@
-import {SignUpBody, ChangePasswordBody, GoogleSignUpBody} from '#auth/classes/index.js';
+import {SignUpBody, ChangePasswordBody, GoogleSignUpBody, LoginBody} from '#auth/classes/index.js';
 import { InviteResult } from '#root/modules/notifications/index.js';
 import {IUser} from '#shared/interfaces/models.js';
 
@@ -21,6 +21,7 @@ export interface IAuthService {
    * @throws Error - If user creation fails for any reason
    */
   signup(body: SignUpBody): Promise<InviteResult[] | string | null>;
+  login(body: LoginBody): Promise<any>;
   googleSignup( body: GoogleSignUpBody, token: string): Promise<InviteResult[] | string | null>;
   getUserIdFromReq(req: any): Promise<string>;
   /**

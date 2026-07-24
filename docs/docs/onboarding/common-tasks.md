@@ -155,7 +155,7 @@ This document provides step-by-step guides for common tasks you'll encounter as 
 3. **Test locally**
    ```bash
    cd docs
-   pnpm start
+   npm start
    ```
 
 4. **Create a PR**
@@ -196,7 +196,7 @@ This document provides step-by-step guides for common tasks you'll encounter as 
 2. Fix type definitions or add proper typing
 3. If using third-party libraries, check if types are installed:
    ```bash
-   pnpm add -D @types/library-name
+   npm install -D @types/library-name
    ```
 
 ### Backend Server Won't Start

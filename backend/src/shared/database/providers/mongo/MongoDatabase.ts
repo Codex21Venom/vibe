@@ -40,68 +40,100 @@ export class MongoDatabase implements IDatabase<Db> {
       return;
     }
 
-    this.client = new MongoClient(uri, {
-      retryWrites: true,
-
-      // 🔹 CONNECTION POOL
-      maxPoolSize: 50,
-      minPoolSize: 10,
-      maxIdleTimeMS: 60000,
-
-      // 🔹 TIMEOUTS
-      connectTimeoutMS: 20000,
-      socketTimeoutMS: 30000,
-
-
-    });
-
+    if (process.env.USE_MEMORY_DB === 'true') {
+      this.client = null; // Will initialize dynamically inside connect()
+    } else {
+      const useTls = uri.startsWith('mongodb+srv://') || uri.includes('ssl=true') || uri.includes('tls=true');
+      this.client = new MongoClient(uri, {
+        ...(useTls ? {
+          ssl: true,
+          tls: true,
+          tlsAllowInvalidCertificates: false,
+          tlsAllowInvalidHostnames: false,
+        } : {}),
+        retryWrites: true,
+        maxPoolSize: 50,
+        minPoolSize: 10,
+        maxIdleTimeMS: 60000,
+        connectTimeoutMS: 20000,
+        socketTimeoutMS: 30000,
+      });
+    }
   }
 
   private async ensureIndexes(): Promise<void> {
-  if (!this.database) return;
+    if (!this.database) return;
 
-  const auditCollection = this.database.collection("auditTrails");
+    const auditCollection = this.database.collection("auditTrails");
 
-  await auditCollection.createIndex({
-    actor: 1,
-    "context.courseId": 1,
-    "context.courseVersionId": 1,
-    createdAt: -1,
-  });
+    await auditCollection.createIndex({
+      actor: 1,
+      "context.courseId": 1,
+      "context.courseVersionId": 1,
+      createdAt: -1,
+    });
 
-  console.log("AuditTrails indexes ensured");
-}
+    console.log("AuditTrails indexes ensured");
+  }
 
   /**
    * Connects to the MongoDB database.
    * @returns {Promise<Db>} The connected database instance.
    */
-  // public async connect(): Promise<Db> {
-  //   await this.client?.connect();
-  //   this.database = this.client?.db(this.dbName) || null;
-
-  //   return this.database;
-  // }
-
-public async connect(): Promise<Db> {
-  if (this.database) {
-    return this.database;
-  }
-
-  if (!this.connectingPromise) {
-    this.connectingPromise = (async () => {
-      await this.client?.connect();
-      this.database = this.client?.db(this.dbName);
-
-      // 🔥 Ensure indexes after connection
-      await this.ensureIndexes();
-
+  public async connect(): Promise<Db> {
+    if (this.database) {
       return this.database;
-    })();
-  }
+    }
 
-  return this.connectingPromise;
-}
+    if (!this.connectingPromise) {
+      this.connectingPromise = (async () => {
+        if (process.env.SKIP_DB_CONNECTION === 'true') {
+          return null as unknown as Db;
+        }
+
+        const startPersistentLocalMongo = async () => {
+          const { MongoMemoryServer } = await import('mongodb-memory-server');
+          const fs = await import('fs');
+          const path = await import('path');
+          const dbDir = path.resolve(process.cwd(), '.data/mongo_db');
+          if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+          const memoryServer = await MongoMemoryServer.create({
+            instance: {
+              dbPath: dbDir,
+              storageEngine: 'wiredTiger',
+            },
+          });
+          const memoryUri = memoryServer.getUri();
+          console.log(`✅ Local persistent MongoDB running at ${memoryUri} (Data saved in ${dbDir})`);
+          this.client = new MongoClient(memoryUri, { retryWrites: true });
+          await this.client.connect();
+        };
+
+        if (process.env.USE_MEMORY_DB === 'true' && !this.client) {
+          console.log('🚀 Starting local persistent MongoDB (USE_MEMORY_DB=true)...');
+          await startPersistentLocalMongo();
+        } else {
+          try {
+            await this.client?.connect();
+          } catch (err: any) {
+            console.error(`⚠️ Cloud MongoDB connection failed (${err.message || err.code}). Falling back to local persistent MongoDB...`);
+            await startPersistentLocalMongo();
+          }
+        }
+
+        this.database = this.client?.db(this.dbName) || null;
+
+        if (this.database) {
+          // 🔥 Ensure indexes after connection
+          await this.ensureIndexes();
+        }
+
+        return this.database as Db;
+      })();
+    }
+
+    return this.connectingPromise;
+  }
 
   /**
    * Disconnects from the MongoDB database.

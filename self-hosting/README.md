@@ -32,33 +32,18 @@ The backend exposes a REST API that the frontend communicates with. The AI serve
 
 ---
 
-## 1. Install pnpm
-
-```bash
-sudo npm install -g pnpm
-```
-
-> If you get a version mismatch error, run this first:
-> ```bash
-> rm -rf ~/Library/pnpm
-> sudo npm uninstall -g pnpm
-> sudo npm install -g pnpm
-> ```
-
----
-
-## 2. Install Dependencies
+## 1. Install Dependencies
 
 Navigate to the frontend directory and install:
 
 ```bash
 cd frontend
-pnpm install
+npm install
 ```
 
 ---
 
-## 3. Configure Environment Variables
+## 2. Configure Environment Variables
 
 Create a `.env` file inside the `frontend/` directory:
 
@@ -105,7 +90,7 @@ VITE_RECAPTCHA_SITE_KEY=
 
 ---
 
-## 4. Production Build
+## 3. Production Build
 
 ### Step 1 — Verify `.env` is present and complete
 
@@ -136,7 +121,7 @@ Output is generated in `frontend/dist/`.
 
 ---
 
-## 5. Serve the Production Build
+## 4. Serve the Production Build
 
 The `dist/` folder contains fully static files and can be served by any static file server or CDN.
 
@@ -168,7 +153,7 @@ server {
 ## Notes
 
 - The `dist/` folder is fully self-contained with all env values baked in at build time.
-- Peer dependency warnings during `pnpm install` (React 19 vs older packages) are expected and non-blocking.
+- Peer dependency warnings during `npm install` (React 19 vs older packages) are expected and non-blocking.
 - Asset warnings for `/public/img/*` during dev are non-blocking.
 
 ---
@@ -177,8 +162,7 @@ server {
 
 | Step | Command |
 |---|---|
-| Install pnpm | `sudo npm install -g pnpm` |
-| Install dependencies | `cd frontend && pnpm install` |
+| Install dependencies | `cd frontend && npm install` |
 | Setup env | `cp .env.example .env` then fill values |
 | Production build | `NODE_OPTIONS="--max-old-space-size=8192" npx vite build` |
 | Verify build locally | `npx serve dist` |

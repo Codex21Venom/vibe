@@ -1935,12 +1935,17 @@ export class EnrollmentService extends BaseService {
       ? [await this.courseRepo.read(courseId)]
       : await this.courseRepo.getAllCourses();
 
-    if (!courses.length || courses.some(c => !c)) {
+    if (courseId && (!courses.length || !courses[0])) {
       throw new Error('Course not found');
     }
 
-    const courseVersionIds = courses.flatMap(c =>
-      c.versions.map(v => v.toString()),
+    const validCourses = courses.filter((c): c is NonNullable<typeof c> => !!c);
+    if (!validCourses.length) {
+      return { totalCount: 0, updatedCount: 0 };
+    }
+
+    const courseVersionIds = validCourses.flatMap(c =>
+      (c.versions || []).map(v => v.toString()),
     );
 
     let index = 0;

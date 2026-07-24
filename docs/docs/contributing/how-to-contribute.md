@@ -34,12 +34,12 @@ Before committing your changes, please ensure that your code is properly linted 
 - **Lint your code:**  
   Run:
   ```bash
-  pnpm lint
+  npm run lint
   ```
 - **Fix formatting issues:**  
   Run:
   ```bash
-  pnpm fix
+  npm run fix
   ```
 
 ### Documentation

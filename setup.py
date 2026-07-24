@@ -32,6 +32,7 @@ console = Console()
 STATE_FILE = ".vibe.json"
 FIREBASE_CLI = "firebase.cmd" if platform.system() == "Windows" else "firebase"
 NPM_CLI = "npm.cmd" if platform.system() == "Windows" else "npm"
+NPX_CLI = "npx.cmd" if platform.system() == "Windows" else "npx"
 
 def clear_screen():
     if platform.system() == "Windows":
@@ -131,7 +132,7 @@ class WelcomeStep(PipelineStep):
 
 class ToolchainCheckStep(PipelineStep):
     def __init__(self):
-        super().__init__("ToolChain Check", "Verify Node.js, npm, pnpm, and firebase-tools are installed")
+        super().__init__("ToolChain Check", "Verify Node.js, npm, and firebase-tools are installed")
 
     def run(self, state):
         def check_command_exists(command):
@@ -153,20 +154,16 @@ class ToolchainCheckStep(PipelineStep):
         if not check_command_exists("npm"):
             console.print("[red]❌ npm is not installed.")
             sys.exit(1)
-        if not check_command_exists("pnpm"):
-            console.print("[yellow]⚠ Installing pnpm...[/yellow]")
-            subprocess.run([NPM_CLI, "install", "-g", "pnpm"], check=True, shell=(platform.system() == "Windows"))
-
         if not check_command_exists("firebase"):
             console.print("[yellow]⚠ Installing firebase-tools...[/yellow]")
-            subprocess.run(["pnpm", "install", "-g", "firebase-tools"], check=True, shell=(platform.system() == "Windows"))
+            subprocess.run([NPM_CLI, "install", "-g", "firebase-tools"], check=True, shell=(platform.system() == "Windows"))
 
         console.print(":white_check_mark: [green]Toolchain verified.[/green]")
         
-        # run pnpm install command in the current directory
-        console.print("[yellow]⚠ Installing pnpm dependencies...[/yellow]")
-        subprocess.run(["pnpm", "install"], check=True, shell=(platform.system() == "Windows"))
-        console.print("[green]✅ pnpm dependencies installed successfully.[/green]")
+        # run npm install command in the current directory
+        console.print("[yellow]⚠ Installing npm dependencies...[/yellow]")
+        subprocess.run([NPM_CLI, "install"], check=True, shell=(platform.system() == "Windows"))
+        console.print("[green]✅ npm dependencies installed successfully.[/green]")
         state.update(self.name, True)
 
 class FirebaseLoginStep(PipelineStep):
@@ -222,7 +219,7 @@ class PackageInstallStep(PipelineStep):
 
     def run(self, state):
         with console.status("Installing backend dependencies..."):
-            subprocess.run(["pnpm", "install"], cwd=self.backend_dir, check=True, shell=(platform.system() == "Windows"))
+            subprocess.run([NPM_CLI, "install"], cwd=self.backend_dir, check=True, shell=(platform.system() == "Windows"))
             state.update(self.name, True)
 
 class MongoDBBinaryStep(PipelineStep):
@@ -242,7 +239,7 @@ class MongoDBBinaryStep(PipelineStep):
         })();
         """)
         try:
-            subprocess.run(["pnpx", "ts-node", "-e", script], check=True, cwd=self.backend_dir, shell=(platform.system() == "Windows"))
+            subprocess.run([NPX_CLI, "ts-node", "-e", script], check=True, cwd=self.backend_dir, shell=(platform.system() == "Windows"))
             state.update(self.name, True)
         except subprocess.CalledProcessError as e:
             console.print(f"[red]❌ Failed to download MongoDB binaries: {e}[/red]")
@@ -255,7 +252,7 @@ class TestStep(PipelineStep):
 
     def run(self, state):
         with console.status("Running backend tests..."):
-            result = subprocess.run(["pnpm", "run", "test:ci"], cwd=self.backend_dir, shell=(platform.system() == "Windows"))
+            result = subprocess.run([NPM_CLI, "run", "test:ci"], cwd=self.backend_dir, shell=(platform.system() == "Windows"))
             if result.returncode == 0:
                 console.print("[green]✅ All tests passed! Backend setup complete.")
                 state.update(self.name, True)
@@ -269,7 +266,7 @@ class FrontendPackageInstallStep(PipelineStep):
         self.frontend_dir = frontend_dir
 
     def run(self, state):
-        subprocess.run(["pnpm", "install"], cwd=self.frontend_dir, check=True, shell=(platform.system() == "Windows"))
+        subprocess.run([NPM_CLI, "install"], cwd=self.frontend_dir, check=True, shell=(platform.system() == "Windows"))
         state.update(self.name, True)
 
 # ------------------ Pipeline Manager ------------------
@@ -311,7 +308,7 @@ class SetupPipeline:
         clear_screen()
         self.print_progress_table("done")
         console.print("\n[bold green]🎉 Setup completed![/bold green]")
-        console.print("\n[bold blue]👉 Run `pnpm run dev` in the backend and frontend directories to start the servers.[/bold blue]")
+        console.print("\n[bold blue]👉 Run `npm run dev` in the backend and frontend directories to start the servers.[/bold blue]")
 
 # ------------------ Main ------------------
 

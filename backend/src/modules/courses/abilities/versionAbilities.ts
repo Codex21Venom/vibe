@@ -44,11 +44,14 @@ export function setupCourseVersionAbilities(
             case 'INSTRUCTOR':
                 can(CourseVersionActions.View, 'CourseVersion', versionBounded);
                 can(CourseVersionActions.Modify, 'CourseVersion', versionBounded);
+                can(CourseVersionActions.Create, 'CourseVersion', { courseId: enrollment.courseId });
+                can(CourseVersionActions.Create, 'CourseVersion', versionBounded);
                 cannot(CourseVersionActions.Delete, 'CourseVersion', versionBounded);
                 cannot(CourseVersionActions.Archive, 'CourseVersion', versionBounded);
                 break;
             case 'MANAGER':
                 can('manage', 'CourseVersion', versionBounded);
+                can('manage', 'CourseVersion', { courseId: enrollment.courseId });
                 cannot(CourseVersionActions.Delete, 'CourseVersion', versionBounded);
                 break;
             case 'TA':

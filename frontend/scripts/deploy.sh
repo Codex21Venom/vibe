@@ -39,8 +39,8 @@ git stash pop || log "⚠️ No stash to apply or conflicts occurred"
 
 # Build and deploy
 log "🏗️ Building project..."
-pnpm install
-pnpm vite build
+npm install
+npm run build
 
 log "🚀 Deploying to Firebase..."
 firebase deploy

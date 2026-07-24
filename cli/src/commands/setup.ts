@@ -6,7 +6,7 @@ import { findProjectRoot } from "../findRoot.ts";
 function runStep(file: string) {
     const isWindows = os.platform() === "win32";
     // run files in ../steps/
-    const result = spawnSync('pnpx', ['ts-node', file], {
+    const result = spawnSync('npx', ['ts-node', file], {
         cwd: path.join(findProjectRoot(),"cli","src","steps"),
         stdio: "inherit",
         shell: isWindows

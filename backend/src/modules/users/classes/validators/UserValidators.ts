@@ -42,8 +42,22 @@ export class GetUserResponse implements IUser {
     readOnly: true,
   })
   @IsString()
-  @IsNotEmpty()
-  firebaseUID: string;
+  @IsOptional()
+  firebaseUID?: string;
+
+  @IsOptional()
+  @IsString()
+  password?: string;
+
+  @IsOptional()
+  @IsString()
+  @JSONSchema({
+    description: 'Authentication provider',
+    example: 'local',
+    type: 'string',
+    readOnly: true,
+  })
+  authProvider?: 'local' | 'google';
 
   @JSONSchema({
     description: 'Email address of the user',

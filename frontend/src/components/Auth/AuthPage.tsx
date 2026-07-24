@@ -893,7 +893,7 @@ export default function AuthPage({ role }: AuthPageProps) {
           password: password,
           firstName: firstName,
           lastName: lastName,
-          recaptchaToken: isRecaptchaEnabled ? recaptchaToken : "NO_CAPTCHA",
+          recaptchaToken: recaptchaToken || "NO_CAPTCHA",
           profileImage,
           faceEmbedding,
         }
@@ -921,26 +921,26 @@ export default function AuthPage({ role }: AuthPageProps) {
 
     } catch (error: any) {
       console.error("Email Signup Failed", error);
-      console.log(signupError, isSignUpError);
-      if (isSignUpError) {
-        let message = "";
-        if (signupError?.message === "Invalid body, check 'errors' property for more info.") {
-          for (const error of signupError?.errors || []) {
-            message += `${Object.values(error.constraints).join(', ')}`;
-          }
+      const errObj = signupError || error?.response?.data || error;
+      let message = "";
+      if (errObj?.message === "Invalid body, check 'errors' property for more info.") {
+        for (const errItem of errObj?.errors || []) {
+          message += `${Object.values(errItem.constraints || {}).join(', ')} `;
         }
-        else message = signupError?.message || "An error occurred during signup";
-
-        setFormErrors({
-          ...formErrors,
-          auth: message || "Failed to create account. Please try again.",
-          email: Object.values(signupError?.errors?.find((e: any) => e.property === 'email')?.constraints || {}).join(', ') || "",
-          fullName:
-            (Object.values(signupError?.errors?.find((e: any) => e.property === 'firstName')?.constraints || {}).join(', ') +
-              (Object.values(signupError?.errors?.find((e: any) => e.property === 'lastName')?.constraints || {}).join(', '))).trim() || "",
-          password: Object.values(signupError?.errors?.find((e: any) => e.property === 'password')?.constraints || {}).join(', ') || ""
-        });
+      } else {
+        message = errObj?.message || error?.message || "An error occurred during signup";
       }
+
+      setFormErrors({
+        ...formErrors,
+        auth: message || "Failed to create account. Please try again.",
+        email: Object.values(errObj?.errors?.find((e: any) => e.property === 'email')?.constraints || {}).join(', ') || "",
+        fullName:
+          (Object.values(errObj?.errors?.find((e: any) => e.property === 'firstName')?.constraints || {}).join(', ') +
+            " " +
+            Object.values(errObj?.errors?.find((e: any) => e.property === 'lastName')?.constraints || {}).join(', ')).trim() || "",
+        password: Object.values(errObj?.errors?.find((e: any) => e.property === 'password')?.constraints || {}).join(', ') || ""
+      });
     } finally {
       setLoading(false);
     }

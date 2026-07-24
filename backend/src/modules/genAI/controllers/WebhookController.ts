@@ -37,9 +37,10 @@ export class WebhookController {
   @OnUndefined(200)
   async handleWebhook(@Body() body: WebhookBody) {
     const {task, jobId, data} = body;
-    // send sse event to clients
-    this.sseService.send(jobId, 'jobStatus', {task, ...data});
     await this.genAIService.updateJob(jobId, task, data);
+    const updatedJob = await this.genAIService.getJobState(jobId);
+    // send sse event to clients
+    this.sseService.send(jobId, 'jobStatus', updatedJob);
   }
 
   @Get('/job/:jobId')

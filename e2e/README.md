@@ -11,7 +11,7 @@ course traversal, lesson completion, and progress verification.
 ## Prerequisites
 
 - Node.js **18+**
-- pnpm
+- npm
 - A running frontend dev server on `http://localhost:5173`
 
 ---
@@ -21,13 +21,13 @@ course traversal, lesson completion, and progress verification.
 From the repository root, install all workspace dependencies:
 
 ```
-pnpm install
+npm install
 ```
 
 Install Playwright browser binaries (one-time setup):
 
 ```
-pnpm --dir e2e exec  playwright install
+npm --workspace=e2e exec playwright install
 ```
 
 ---
@@ -37,13 +37,13 @@ pnpm --dir e2e exec  playwright install
 Run all E2E tests:
 
 ```
-pnpm --dir e2e test-e2e
+npm --workspace=e2e run test-e2e
 ```
 
 Run only course playback + quiz traversal:
 
 ```
-pnpm --dir e2e exec playwright test tests/play-course-vidoes.test.ts
+npm --workspace=e2e exec playwright test tests/play-course-vidoes.test.ts
 ```
 
 Note: the test file path contains a legacy typo (`vidoes`) and is kept as-is
@@ -52,7 +52,7 @@ to avoid breaking existing references.
 Run progress status assertion (expects 100% completion):
 
 ```
-pnpm --dir e2e exec playwright test tests/test-progress-status.test.ts
+npm --workspace=e2e exec playwright test tests/test-progress-status.test.ts
 ```
 
 ---

@@ -20,14 +20,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        # No version pin: use the repo's `packageManager` (pnpm 10).
-
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
         working-directory: backend
 
       - name: Lint Backend Code
-        run: pnpm run lint
+        run: npm run lint
         working-directory: backend

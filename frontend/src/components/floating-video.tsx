@@ -122,11 +122,11 @@ function FloatingVideo({
   // Check which components are enabled
   const isBlurDetectionEnabled = isComponentEnabled('blurDetection');
   const isFaceCountDetectionEnabled = isComponentEnabled('faceCountDetection');
-  const isHandGestureDetectionEnabled = false; //isComponentEnabled('handGestureDetection');
+  const isHandGestureDetectionEnabled = isComponentEnabled('handGestureDetection');
   const isVoiceDetectionEnabled = isComponentEnabled('voiceDetection');
   const isFaceRecognitionEnabled = isComponentEnabled('faceRecognition');
   const isRighClickDisabled = isComponentEnabled("rightClickDisabled");
-  const isFocusEnabled = false; //isComponentEnabled('focus');
+  const isFocusEnabled = isComponentEnabled('focus');
 
   // Log enabled components for debugging
   // useEffect(() => {
@@ -290,6 +290,12 @@ const lastCalledRef = useRef<number>(0);
             console.log("Invalid face count for anomaly reporting");
             return;
           }
+        } else if (anomalyType === "focus") {
+          reportAnomalyType = AnomalyType.FOCUS;
+        } else if (anomalyType === "handGestureDetection") {
+          reportAnomalyType = AnomalyType.HAND_GESTURE_DETECTION;
+        } else if (anomalyType === "faceRecognition") {
+          reportAnomalyType = AnomalyType.FACE_RECOGNITION;
         } else {
           console.log("Unknown anomaly type:", anomalyType);
           return;
@@ -389,7 +395,7 @@ const lastCalledRef = useRef<number>(0);
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         reportAudio.mutate({
           body: {
-            type: "voiceDetection",
+            type: AnomalyType.VOICE_DETECTION,
             courseId: courseStore.currentCourse?.courseId || "",
             versionId: courseStore.currentCourse?.versionId || "",
             itemId: courseStore.currentCourse?.itemId || ""
@@ -1458,7 +1464,7 @@ const lastCalledRef = useRef<number>(0);
           <FaceDetectors 
             key={`face-${faceDetectorsKeyRef.current}`}
             faces={faces} 
-            setIsFocused={()=>{}}
+            setIsFocused={setIsFocused}
             videoRef={videoRef}
             onRecognitionResult={handleFaceRecognitionResult}
             onMismatchChange={handleFaceRecognitionMismatchChange}
@@ -1473,16 +1479,6 @@ const lastCalledRef = useRef<number>(0);
               isFocusEnabled
             }}
           />
-  
-          // <FaceDetectors 
-          //   key={`face-${faceDetectorsKey}`}
-          //   faces={faces} 
-          //   setIsFocused={()=>{}} // CHANGE THIS LATER.
-          //   videoRef={videoRef}
-          //   onRecognitionResult={handleFaceRecognitionResult}
-          //   // onDebugInfoUpdate={handleFaceRecognitionDebugUpdate}
-          //   settings={isFaceCountDetectionEnabled, isFaceRecognitionEnabled, isFocusEnabled}
-          // />
         )}
       </div>
 

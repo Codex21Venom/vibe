@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 $StateFile = ".vibe.json"
 
 Write-Host "🚀 ViBe Setup Script"
@@ -37,33 +37,19 @@ function Exists-Node {
     return (Get-Command node -ErrorAction SilentlyContinue) -and (Get-Command npm -ErrorAction SilentlyContinue)
 }
 
-function Install-PNPM {
-    if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
-        Write-Host "📦 Installing pnpm..."
-        Invoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression
-    }
-    # Refresh session path
-    $Env:Path = [System.Environment]::GetEnvironmentVariable("Path","User") + ";" + [System.Environment]::GetEnvironmentVariable("Path","Machine")
-    if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
-        Write-Host "Please restart PowerShell and run the script again."
-        exit 1
-    }
-    Write-Host "✅ pnpm: $(pnpm -v)"
-}
-
 function Install-NodeDependencies {
     Write-Host "📦 Installing required Node.js dependencies..."
-    pnpm install -g tsx
+    npm install -g tsx
     if (-not (Get-Command firebase -ErrorAction SilentlyContinue)) {
-        pnpm install -g firebase-tools
+        npm install -g firebase-tools
     }
-    pnpm install
+    npm install
 }
 
 function Install-CLI {
     Write-Host "⚙ Installing CLI..."
     Push-Location cli
-    pnpm link --global
+    npm link
     Pop-Location
     Write-Host "✅ ViBe CLI installed and linked globally."
 }
@@ -128,7 +114,6 @@ if ((Get-Location).Path -like "*\scripts") {
 }
 
 Check-Repo
-Install-PNPM
 Check-Node
 Install-NodeDependencies
 Install-CLI

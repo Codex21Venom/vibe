@@ -57,12 +57,14 @@ const mapFirebaseUserToAppUser = async (firebaseUser: FirebaseUser | null) => {
 };
 
 export const refreshFirebaseToken = async (): Promise<void> => {
+  if (localStorage.getItem('auth-provider') === 'local') {
+    return;
+  }
   const firebaseUser = auth.currentUser;
   if (!firebaseUser) {
     throw new Error('No authenticated user found');
   }
   try {
-    // Refresh the token
     const token = await firebaseUser.getIdToken(true);
     useAuthStore.getState().setToken(token);
   } catch (error) {
@@ -71,28 +73,11 @@ export const refreshFirebaseToken = async (): Promise<void> => {
   }
 };
 
-// Initialize auth listener
-// export const initAuth = () => {
-//   const { setUser, clearUser } = useAuthStore.getState();
-  
-//   return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-//     if (firebaseUser) {
-//       const user = await mapFirebaseUserToAppUser(firebaseUser);
-//       if (user) {
-//         console.log('User authenticated:', user);
-//         localStorage.setItem('isAuth', 'true'); // Set auth flag in localStorage
-//         setUser(user);
-//       }
-//     } else {
-//       clearUser();
-//     }
-//   });
-// };
-
 // Login with Google in a popup
 export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, provider);
+    localStorage.setItem('auth-provider', 'google');
     const user = await mapFirebaseUserToAppUser(result.user);
     if (user) {
       useAuthStore.getState().setUser(user);
@@ -106,39 +91,70 @@ export const loginWithGoogle = async () => {
 
 // Login with email/password
 export const loginWithEmail = async (email: string, password: string) => {
-  try {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    const user = await mapFirebaseUserToAppUser(result.user);
-    if (user) {
-      useAuthStore.getState().setUser(user);
-    }
-    return result;
-  } catch (error) {
-    console.error('Email login error:', error);
-    throw error;
+  const baseUrl = import.meta.env.VITE_BASE_URL;
+  const response = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, recaptchaToken: "NO_CAPTCHA" }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Invalid email or password.');
   }
+
+  const result = await response.json();
+  const idToken = result.idToken || result.token;
+  if (!idToken) {
+    throw new Error('Login failed: No token received.');
+  }
+
+  localStorage.setItem('auth-provider', 'local');
+  useAuthStore.getState().setToken(idToken);
+
+  const userObj = result.user || {};
+  const displayName = result.displayName || `${userObj.firstName || ''} ${userObj.lastName || ''}`.trim();
+
+  const appUser = {
+    uid: result.localId || userObj._id || '',
+    email: result.email || email,
+    name: displayName,
+    firstName: userObj.firstName || '',
+    lastName: userObj.lastName || '',
+    role: useAuthStore.getState().user?.role || 'student',
+    avatar: userObj.profileImage || '',
+  };
+  useAuthStore.getState().setUser(appUser as any);
+
+  return {
+    user: {
+      uid: result.localId || userObj._id || '',
+      email: result.email || email,
+      displayName: displayName,
+      photoURL: userObj.profileImage || '',
+      getIdToken: async () => idToken,
+    },
+    ...result,
+  };
 };
 
 // Use a single implementation of logout and checkAuth
 // Logout
 export function logout() {
-  // Clear localStorage
   localStorage.removeItem('isAuth');
   localStorage.removeItem('firebase-auth-token');
-  
-  // Sign out from Firebase
+  localStorage.removeItem('auth-provider');
   firebaseSignOut(auth).catch(err => console.error('Firebase logout error:', err));
-  
-  // Clear user from store (this will also clear localStorage via store action)
   useAuthStore.getState().clearUser();
-  
-  // Reset query client
   queryClient.clear();
 }
 
 // Check if user is authenticated
 export function checkAuth() {
   const token = localStorage.getItem('firebase-auth-token');
+  if (localStorage.getItem('auth-provider') === 'local') {
+    return !!token;
+  }
   const firebaseUser = auth.currentUser;
   return !!token && !!firebaseUser;
 }

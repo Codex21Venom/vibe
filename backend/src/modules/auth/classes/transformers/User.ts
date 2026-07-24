@@ -20,13 +20,27 @@ class User implements IUser {
   _id: string | ObjectId | null;
 
 
+  @IsOptional()
   @IsString()
   @Expose()
   @JSONSchema({
     title: 'Firebase UID',
     description: 'Firebase UID',
   })
-  firebaseUID: string;
+  firebaseUID?: string;
+
+  @IsOptional()
+  @IsString()
+  password?: string;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  @JSONSchema({
+    title: 'Auth Provider',
+    description: 'Authentication provider (local or google)',
+  })
+  authProvider?: 'local' | 'google';
 
   @Expose()
   @IsString()
@@ -134,6 +148,8 @@ class User implements IUser {
     this.profileImage = data?.profileImage;
     this.faceEmbedding = data?.faceEmbedding;
     this.roles = data?.roles || 'user';
+    this.password = data?.password;
+    this.authProvider = data?.authProvider || (data?.firebaseUID ? 'google' : 'local');
   }
 }
 

@@ -78,6 +78,7 @@ async function initializeModel() {
 async function detectFaces(imageBitmap: ImageBitmap) {
   if (!detector) {
     self.postMessage({ type: "ERROR", message: "Model not initialized" });
+    if (imageBitmap && typeof imageBitmap.close === "function") imageBitmap.close();
     return;
   }
 
@@ -89,10 +90,14 @@ async function detectFaces(imageBitmap: ImageBitmap) {
 
   if (!ctx) {
     self.postMessage({ type: "ERROR", message: "Canvas context unavailable" });
+    if (imageBitmap && typeof imageBitmap.close === "function") imageBitmap.close();
     return;
   }
 
   ctx.drawImage(imageBitmap, 0, 0);
+  if (imageBitmap && typeof imageBitmap.close === "function") {
+    imageBitmap.close();
+  }
 
   try {
     const faces = await detector.estimateFaces(

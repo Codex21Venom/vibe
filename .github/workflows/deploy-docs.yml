@@ -24,16 +24,12 @@ jobs:
         with:
           node-version: 18  # Docusaurus recommends 18 LTS (use 22 only if needed)
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        
-
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
         working-directory: docs  # Path to your Docusaurus project
 
       - name: Build Docusaurus site
-        run: pnpm run build
+        run: npm run build
         working-directory: docs
 
       - name: Deploy to GitHub Pages

@@ -17,7 +17,7 @@ This project is organized into a modular monorepo format with separate folders f
 ├── frontend/             # Frontend codebase (React/Next.js/etc.)
 ├── .gitignore            # Git ignored files
 ├── package.json          # Project metadata and scripts
-├── pnpm-lock.yaml        # Lockfile for deterministic installs
+├── package-lock.json       # Lockfile for deterministic installs
 ├── setup.py              # (Setup script)
 ```
 

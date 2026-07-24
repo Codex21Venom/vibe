@@ -7,11 +7,11 @@ async function setupMcp() {
   try {
     // Install the openapi-mcp-generator package
     console.log('Installing openapi-mcp-generator...');
-    execSync('pnpm install -g openapi-mcp-generator', { stdio: 'inherit' });
+    execSync('npm install -g openapi-mcp-generator', { stdio: 'inherit' });
 
     // Generate fresh OpenAPI spec
     console.log('Generating fresh OpenAPI spec...');
-    execSync('pnpm --dir ./backend gen-openapi', { stdio: 'inherit' });
+    execSync('npm --workspace=backend run gen-openapi', { stdio: 'inherit' });
 
     // Delete existing mcp directory if it exists
     const mcpDir = path.join('mcp');
@@ -26,7 +26,7 @@ async function setupMcp() {
 
     // install and build mcp
     console.log('Installing and building MCP...');
-    execSync('cd ./mcp && pnpm install && pnpm build && cd ..', { stdio: 'inherit' });
+    execSync('cd ./mcp && npm install && npm run build && cd ..', { stdio: 'inherit' });
 
     // Create .vscode directory if it doesn't exist
     console.log('Setting up .vscode directory...');
@@ -37,10 +37,11 @@ async function setupMcp() {
     "servers": {
         "vibe": {
             "type": "stdio",
-            "command": "pnpm",
+            "command": "npm",
             "args": [
-                "--dir",
+                "--prefix",
                 "\${workspaceFolder}/mcp",
+                "run",
                 "start"
             ]
         }

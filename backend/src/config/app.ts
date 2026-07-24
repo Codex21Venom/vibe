@@ -20,6 +20,8 @@ export const appConfig = {
   module: env('APP_MODULE') || 'all',
   routePrefix: env('APP_ROUTE_PREFIX') || '/api',
   frontendUrl: env('FRONTEND_URL') || 'http://localhost:5173',
+  jwtSecret: env('JWT_SECRET') || 'vibe-secret-key-2026-auth',
+  jwtExpiresIn: env('JWT_EXPIRES_IN') || '7d',
   ENABLE_DB_BACKUP: env('ENABLE_DB_BACKUP') === 'true',
   ENABLE_HP_JOB: env('ENABLE_HP_JOB') === 'true',
   // Default ON: the follow-up invite reconciliation cron self-activates on deploy

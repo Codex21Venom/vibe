@@ -87,6 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
+        // Check if user is authenticated with local JWT instead of Firebase
+        if (localStorage.getItem('auth-provider') === 'local' && localStorage.getItem('firebase-auth-token')) {
+          setAuthReady(true);
+          return;
+        }
         // User is signed out, clear everything
         if (tokenRefreshIntervalRef.current) {
           clearInterval(tokenRefreshIntervalRef.current);

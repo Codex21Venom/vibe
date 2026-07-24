@@ -8,7 +8,7 @@ function runProcess(name: string, cwd: string, script: string = "dev") {
     console.log(`⏳ Starting ${name} in ${cwd} with script '${script}'...`);
 
     const isWindows = os.platform() === "win32";
-    const proc = spawn("pnpm", ["run", script], {
+    const proc = spawn("npm", ["run", script], {
       cwd,
       stdio: "inherit",
       shell: isWindows // shell: true required for Windows

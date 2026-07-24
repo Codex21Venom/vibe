@@ -3,7 +3,6 @@ import { Face, Keypoint } from "@tensorflow-models/face-detection";
 import FaceRecognitionComponent from "./FaceRecognitionComponent";
 
 import type { FaceDetectorsProps, FaceRecognition, FaceRecognitionDebugInfo } from "@/types/ai.types";
-import { eye } from "@tensorflow/tfjs-core";
 
 const isLookingAway = (face: Face): boolean => {
   if (!face || face.keypoints.length < 6) return false;
@@ -49,10 +48,16 @@ const isLookingAway = (face: Face): boolean => {
 const FaceDetectors: React.FC<FaceDetectorsProps> = ({ setIsFocused, faces, videoRef, onRecognitionResult, onDebugInfoUpdate, onMismatchChange, onMissingEmbedding, settings }) => {
 
   useEffect(() => {
-    const isFocused = true;
-    if (faces.length === 0) return setIsFocused(false);
-    setIsFocused(isFocused);
-  }, [faces, setIsFocused]);
+    if (faces.length === 0) {
+      setIsFocused(false);
+      return;
+    }
+    if (settings?.isFocusEnabled && isLookingAway(faces[0])) {
+      setIsFocused(false);
+      return;
+    }
+    setIsFocused(true);
+  }, [faces, setIsFocused, settings?.isFocusEnabled]);
 
   // Debug log
   useEffect(() => {

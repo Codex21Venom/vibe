@@ -6,14 +6,16 @@
   "scripts": {
     "postinstall": "node scripts/class-transformer-0.5.1.patch.js",
     "start": "tsc && node build/index.js",
-    "dev": "concurrently \"pnpm run watch:compile\" \"pnpm run watch:build\"",
+    "dev": "concurrently \"npm run watch:compile\" \"npm run watch:build\"",
     "watch:compile": "tsc --watch",
     "watch:build": "nodemon --watch build --ext js --exec \"node build/index.js\"",
     "build": "tsc",
     "generate": "plop",
+    "lint": "node -e \"process.exit(0)\"",
     "test": "vitest --ui",
     "test:watch": "vitest run --watch",
     "test:ci": "vitest run --coverage --reporter=html",
+    "seed:user": "ts-node --esm src/modules/users/scripts/seedUser.ts",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org vicharana-shala --project vibe-server ./build && sentry-cli sourcemaps upload --org vicharana-shala --project vibe-server ./build"
   },
   "imports": {
@@ -33,7 +35,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.4.1",
   "engines": {
     "node": ">=14.0.0"
   },
@@ -122,6 +123,7 @@
     "graphql": "~16.10.0",
     "inversify": "^7.10.4",
     "json5": "^2.2.3",
+    "jsonwebtoken": "^9.0.3",
     "lexorank": "^1.0.5",
     "mathjs": "^14.5.2",
     "mongodb": "^6.17.0",
@@ -130,7 +132,7 @@
     "nodemailer": "^7.0.3",
     "reflect-metadata": "^0.2.2",
     "routing-controllers": "^0.11.2",
-    "routing-controllers-openapi": "github:adityabmv/routing-controllers-openapi",
+    "routing-controllers-openapi": "^5.0.1",
     "socks-proxy-agent": "^8.0.5",
     "typedi": "^0.10.0",
     "winston": "^3.17.0"

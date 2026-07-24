@@ -11,7 +11,12 @@ import admin from 'firebase-admin';
 import {appConfig} from '#root/config/app.js';
 
 if (!admin.apps.length) {
-  if (appConfig.isDevelopment) {
+  if (
+    appConfig.isDevelopment &&
+    appConfig.firebase?.clientEmail &&
+    appConfig.firebase?.privateKey &&
+    appConfig.firebase?.projectId
+  ) {
     admin.initializeApp({
       credential: admin.credential.cert({
         clientEmail: appConfig.firebase.clientEmail,
@@ -20,9 +25,16 @@ if (!admin.apps.length) {
       }),
     });
   } else {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
+    try {
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        projectId: appConfig.firebase?.projectId || 'vibe-dev',
+      });
+    } catch {
+      admin.initializeApp({
+        projectId: appConfig.firebase?.projectId || 'vibe-dev',
+      });
+    }
   }
 }
 @injectable()
@@ -60,6 +72,11 @@ export class UserRepository implements IUserRepository {
     await this.init();
     if (!user._id) {
       user._id = new ObjectId();
+    }
+    if (!user.firebaseUID || user.authProvider === 'local') {
+      user.firebaseUID = user.firebaseUID || `local_${user._id.toString()}`;
+      await this.usersCollection.insertOne(user, { session });
+      return user._id.toString();
     }
     const result = await this.usersCollection.findOneAndUpdate(
       { firebaseUID: user.firebaseUID },

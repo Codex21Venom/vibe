@@ -189,23 +189,7 @@ export class AuthController {
       throw new HttpError(500, 'Failed to verify reCAPTCHA. Please try again.');
     }
 
-    // Proceed with Firebase authentication
-    const data = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${appConfig.firebase.apiKey}`,
-      {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          email,
-          password,
-          returnSecureToken: true,
-        }),
-      },
-    );
-    const result = await data.json();
-
-    // ✅ fetch your app user from DB
-    // const user = await this.authService.getCurrentUserFromToken(result.idToken);
+    const result = await this.authService.login(body);
     return result;
   }
 }

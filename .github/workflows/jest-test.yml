@@ -17,15 +17,11 @@ jobs:
         with:
           node-version: '23.11.0'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      
-
       - name: Remove lockfile
-        run: rm pnpm-lock.yaml
+        run: rm -f package-lock.json
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Get public IP
         id: get_ip
@@ -65,7 +61,7 @@ jobs:
           
       - name: Run Jest tests
         working-directory: backend
-        run: pnpm test:ci
+        run: npm run test:ci
         env:
           DB_URL: ${{ secrets.DB_URL }}
 

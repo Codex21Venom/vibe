@@ -55,7 +55,14 @@ class CameraProcessor {
   }
 
   async captureFrame(): Promise<ImageBitmap | null> {
-    if (!this.videoElement) return null;
+    if (
+      !this.videoElement ||
+      this.videoElement.readyState < 2 ||
+      this.videoElement.videoWidth === 0 ||
+      this.videoElement.videoHeight === 0
+    ) {
+      return null;
+    }
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");

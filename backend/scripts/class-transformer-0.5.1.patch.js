@@ -14,13 +14,23 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
 
+const require = createRequire(import.meta.url);
 const __dirname = getDirname();
 
 (() => {
-  const nodeModulesDir = path.join(findRootWithPackageJson(), "node_modules");
-
-  const classTransformerDir = path.join(nodeModulesDir, "class-transformer");
+  let classTransformerDir;
+  try {
+    const pkgPath = require.resolve("class-transformer/package.json");
+    classTransformerDir = path.dirname(pkgPath);
+  } catch (e) {
+    const rootDir = findRootWithPackageJson();
+    classTransformerDir = path.join(rootDir, "node_modules", "class-transformer");
+    if (!fs.existsSync(classTransformerDir)) {
+      classTransformerDir = path.join(rootDir, "..", "node_modules", "class-transformer");
+    }
+  }
 
   const classTransformerPackageFile = getPackageJson(classTransformerDir);
 

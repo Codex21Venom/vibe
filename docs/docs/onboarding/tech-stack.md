@@ -49,10 +49,10 @@ function Welcome() {
 **Quick Start:**
 ```bash
 # Start development server
-pnpm run dev
+npm run dev
 
 # Build for production
-pnpm run build
+npm run build
 ```
 
 ### TypeScript
@@ -309,34 +309,34 @@ async function verifyToken(token: string) {
 cd docs
 
 # Install dependencies
-pnpm install
+npm install
 
 # Start development server
-pnpm start
+npm start
 ```
 
 ## Development Tools
 
-### pnpm
+### npm
 
-**What it is:** A fast, disk space efficient package manager.
+**What it is:** The default package manager for the Node.js JavaScript runtime environment.
 
-**How we use it:** We use pnpm instead of npm or yarn for all package management.
+**How we use it:** We use npm workspaces for all package management across our monorepo.
 
 **Learning Resources:**
-- [pnpm Documentation](https://pnpm.io/motivation)
-- [pnpm vs npm/yarn](https://pnpm.io/pnpm-vs-npm)
+- [npm Documentation](https://docs.npmjs.com/)
+- [npm Workspaces](https://docs.npmjs.com/cli/v10/using-npm/workspaces)
 
 **Quick Start:**
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
 # Add a package
-pnpm add package-name
+npm install package-name
 
 # Run a script
-pnpm run script-name
+npm run script-name
 ```
 
 ### ESLint & Prettier
@@ -352,10 +352,10 @@ pnpm run script-name
 **Quick Start:**
 ```bash
 # Lint code
-pnpm lint
+npm run lint
 
 # Fix formatting issues
-pnpm fix
+npm run fix
 ```
 
 ## Version Control & CI/CD
@@ -428,13 +428,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm test
+          cache: 'npm'
+      - run: npm install
+      - run: npm test
 ```
 
 ### Husky

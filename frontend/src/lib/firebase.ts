@@ -41,6 +41,7 @@ export const loginWithGoogle = async () => {
   // Get ID token for backend authentication
   const idToken = await result.user.getIdToken();
   
+  localStorage.setItem('auth-provider', 'google');
   // Store the token
   useAuthStore.getState().setToken(idToken);
   
@@ -48,30 +49,64 @@ export const loginWithGoogle = async () => {
 };
 
 export const loginWithEmail = async (email: string, password: string) => {
-  const result = await signInWithEmailAndPassword(auth, email, password);
-  
-  // Get ID token for backend authentication
-  const idToken = await result.user.getIdToken();
-  
-  // Store the token
+  const baseUrl = import.meta.env.VITE_BASE_URL;
+  const response = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, recaptchaToken: "NO_CAPTCHA" }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Invalid email or password.');
+  }
+
+  const result = await response.json();
+  const idToken = result.idToken || result.token;
+  if (!idToken) {
+    throw new Error('Login failed: No token received.');
+  }
+
+  localStorage.setItem('auth-provider', 'local');
   useAuthStore.getState().setToken(idToken);
-  
-  return result;
+
+  const userObj = result.user || {};
+  const displayName = result.displayName || `${userObj.firstName || ''} ${userObj.lastName || ''}`.trim();
+
+  const appUser = {
+    uid: result.localId || userObj._id || '',
+    email: result.email || email,
+    name: displayName,
+    firstName: userObj.firstName || '',
+    lastName: userObj.lastName || '',
+    role: useAuthStore.getState().user?.role || 'student',
+    avatar: userObj.profileImage || '',
+  };
+  useAuthStore.getState().setUser(appUser as any);
+
+  return {
+    user: {
+      uid: result.localId || userObj._id || '',
+      email: result.email || email,
+      displayName: displayName,
+      photoURL: userObj.profileImage || '',
+      getIdToken: async () => idToken,
+    },
+    ...result,
+  };
 };
 
-// Add a function to create a user with email and password
+// Function to create a user with email and password without touching Firebase
 export const createUserWithEmail = async (email: string, password: string, displayName?: string) => {
-  const auth = getAuth(app);
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  
-  // Update user profile if display name is provided
-  if (displayName && userCredential.user) {
-    await updateProfile(userCredential.user, {
-      displayName
-    });
-  }
-  
-  return userCredential;
+  // Pass directly to backend without creating account in Firebase
+  return {
+    user: {
+      uid: 'local_' + Date.now(),
+      email,
+      displayName: displayName || '',
+      getIdToken: async () => useAuthStore.getState().token || '',
+    }
+  };
 };
 
 /**
@@ -164,7 +199,8 @@ export const resetPassword = async (code: string, newPassword: string) => {
 };
 
 export const logout = () => {
-  signOut(auth);
+  localStorage.removeItem('auth-provider');
+  signOut(auth).catch(() => {});
   useAuthStore.getState().clearUser();
 };
 

@@ -1,14 +1,12 @@
 FROM node:20-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@8.10.0 --activate
-
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install
+COPY package.json package-lock.json* ./
+RUN npm install
 
 COPY . .
-RUN pnpm build
+RUN npm run build
 
 FROM nginx:stable-alpine
 COPY --from=builder /app/dist /usr/share/nginx/html

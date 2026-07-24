@@ -1,16 +1,16 @@
 FROM node:22-alpine AS builder
 
 RUN apk add --no-cache git
-RUN corepack enable && corepack prepare pnpm@10.4.1 --activate && npm install -g rimraf
+RUN npm install -g rimraf
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json package-lock.json* ./
 COPY scripts ./scripts
-RUN pnpm install
+RUN npm install
 
 COPY . .
-RUN pnpm tsc
+RUN npm run build
 
 FROM node:22-alpine
 

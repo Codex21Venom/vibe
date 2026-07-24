@@ -3,12 +3,15 @@ import {
   User,
   ChangePasswordBody,
   GoogleSignUpBody,
+  LoginBody,
 } from '#auth/classes/index.js';
 import {IAuthService} from '#auth/interfaces/IAuthService.js';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {injectable, inject} from 'inversify';
-import {BadRequestError, InternalServerError} from 'routing-controllers';
+import {BadRequestError, InternalServerError, UnauthorizedError} from 'routing-controllers';
 import admin from 'firebase-admin';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import {IUser} from '#root/shared/interfaces/models.js';
 import {BaseService} from '#root/shared/classes/BaseService.js';
 import {IUserRepository} from '#root/shared/database/interfaces/IUserRepository.js';
@@ -106,7 +109,12 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
   ) {
     super(database);
     if (!admin.apps.length) {
-      if (appConfig.isDevelopment) {
+      if (
+        appConfig.isDevelopment &&
+        appConfig.firebase?.clientEmail &&
+        appConfig.firebase?.privateKey &&
+        appConfig.firebase?.projectId
+      ) {
         admin.initializeApp({
           credential: admin.credential.cert({
             clientEmail: appConfig.firebase.clientEmail,
@@ -115,73 +123,151 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
           }),
         });
       } else {
-        admin.initializeApp({
-          credential: admin.credential.applicationDefault(),
-        });
+        try {
+          admin.initializeApp({
+            credential: admin.credential.applicationDefault(),
+            projectId: appConfig.firebase?.projectId || 'vibe-dev',
+          });
+        } catch {
+          admin.initializeApp({
+            projectId: appConfig.firebase?.projectId || 'vibe-dev',
+          });
+        }
       }
     }
     this.auth = admin.auth();
   }
-  async getCurrentUserFromToken(token: string): Promise<IUser> {
-    // Verify the token and decode it to get the Firebase UID
-    const decodedToken = await this.auth.verifyIdToken(token);
-    const firebaseUID = decodedToken.uid;
-    // Retrieve the user from our database using the Firebase UID
-    let user = await this.userRepository.findByFirebaseUID(firebaseUID);
-    if (!user) {
-      // get user data from Firebase
-      try {
-        const firebaseUser = await this.auth.getUser(firebaseUID);
-        if (!firebaseUser) {
-          throw new InternalServerError('Firebase user not found');
-        }
-        // Map Firebase user data to our application user model
-        const userData: GoogleSignUpBody = {
-          email: firebaseUser.email,
-          firstName: firebaseUser.displayName?.split(' ')[0] || '',
-          lastName: firebaseUser.displayName?.split(' ')[1] || '',
-        };
-        await this.googleSignup(userData, token);
-        user = await this.userRepository.findByFirebaseUID(firebaseUID);
-        if (!user) {
-          throw new InternalServerError('Failed to create the user');
-        }
-      } catch (error) {
-        throw new InternalServerError(
-          `Failed to retrieve user from Firebase: ${error.message}`,
-        );
-      }
-    }
-    user._id = user._id.toString();
-    return user;
+  private generateJwtToken(user: IUser): string {
+    const payload = {
+      userId: user._id ? user._id.toString() : '',
+      email: user.email,
+      roles: user.roles,
+      authProvider: 'local',
+    };
+    return jwt.sign(payload, appConfig.jwtSecret, {
+      expiresIn: appConfig.jwtExpiresIn as any,
+    });
   }
+
+  async getCurrentUserFromToken(token: string): Promise<IUser> {
+    // First, check if the token is a local JWT (from normal email/password login)
+    try {
+      const decoded = jwt.verify(token, appConfig.jwtSecret) as any;
+      if (decoded && (decoded.userId || decoded.email)) {
+        let user: IUser | null = null;
+        if (decoded.userId) {
+          user = await this.userRepository.findById(decoded.userId);
+        }
+        if (!user && decoded.email) {
+          user = await this.userRepository.findByEmail(decoded.email);
+        }
+        if (user) {
+          user._id = user._id ? user._id.toString() : '';
+          return user;
+        }
+      }
+    } catch (jwtError) {
+      // Not a local JWT or expired, fallback to checking Firebase token below
+    }
+
+    // Verify the token and decode it using Firebase Auth (for Google Sign-In)
+    try {
+      const decodedToken = await this.auth.verifyIdToken(token);
+      const firebaseUID = decodedToken.uid;
+      let user = await this.userRepository.findByFirebaseUID(firebaseUID);
+      if (!user && decodedToken.email) {
+        user = await this.userRepository.findByEmail(decodedToken.email);
+        if (user && !user.firebaseUID) {
+          await this.userRepository.edit(user._id.toString(), { firebaseUID });
+          user.firebaseUID = firebaseUID;
+        }
+      }
+      if (!user) {
+        try {
+          const firebaseUser = await this.auth.getUser(firebaseUID);
+          if (!firebaseUser) {
+            throw new InternalServerError('Firebase user not found');
+          }
+          const userData: GoogleSignUpBody = {
+            email: firebaseUser.email,
+            firstName: firebaseUser.displayName?.split(' ')[0] || '',
+            lastName: firebaseUser.displayName?.split(' ')[1] || '',
+          };
+          await this.googleSignup(userData, token);
+          user = await this.userRepository.findByFirebaseUID(firebaseUID);
+          if (!user && firebaseUser.email) {
+            user = await this.userRepository.findByEmail(firebaseUser.email);
+          }
+          if (!user) {
+            throw new InternalServerError('Failed to create the user');
+          }
+        } catch (error) {
+          throw new InternalServerError(
+            `Failed to retrieve user from Firebase: ${error.message}`,
+          );
+        }
+      }
+      if (user) {
+        user._id = user._id ? user._id.toString() : '';
+        return user;
+      }
+    } catch (firebaseError) {
+      throw new UnauthorizedError('Invalid authentication token');
+    }
+    throw new UnauthorizedError('User not found');
+  }
+
   async getUserIdFromReq(req: any): Promise<string> {
-    // Extract the token from the request headers
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
       throw new InternalServerError('No token provided');
     }
-    await this.verifyToken(token);
-    // Decode the token to get the Firebase UID
-    const decodedToken = await this.auth.verifyIdToken(token);
-    const firebaseUID = decodedToken.uid;
-    const user = await this.userRepository.findByFirebaseUID(firebaseUID);
-    if (!user) {
+    const user = await this.getCurrentUserFromToken(token);
+    if (!user || !user._id) {
       throw new InternalServerError('User not found');
     }
     return user._id.toString();
   }
-  async verifyToken(token: string): Promise<boolean> {
-    // Decode and verify the Firebase token
-    const decodedToken = await this.auth.verifyIdToken(token);
-    // // Retrieve the full user record from Firebase
-    // const userRecord = await this.auth.getUser(decodedToken.uid);
 
-    // Map Firebase user data to our application user model
-    if (!decodedToken) {
+  async verifyToken(token: string): Promise<boolean> {
+    try {
+      const user = await this.getCurrentUserFromToken(token);
+      return !!user;
+    } catch {
       return false;
     }
-    return true;
+  }
+
+  async login(body: LoginBody): Promise<any> {
+    const user = await this.userRepository.findByEmail(body.email);
+    if (!user || !user.password) {
+      throw new UnauthorizedError('Invalid email or password.');
+    }
+
+    const isMatch = await bcrypt.compare(body.password, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedError('Invalid email or password.');
+    }
+
+    const token = this.generateJwtToken(user);
+    const displayName = `${user.firstName} ${user.lastName || ''}`.trim();
+
+    return {
+      localId: user._id ? user._id.toString() : '',
+      email: user.email,
+      displayName,
+      idToken: token,
+      refreshToken: token,
+      expiresIn: 604800,
+      user: {
+        _id: user._id ? user._id.toString() : '',
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roles: user.roles,
+        profileImage: user.profileImage,
+      },
+    };
   }
 
   async signup(body: SignUpBody): Promise<any> {
@@ -193,26 +279,13 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
       throw new InternalServerError('User with this email already exists');
     }
 
-    let userRecord: any;
-    try {
-      // Create the user in Firebase Auth
-      userRecord = await this.auth.createUser({
-        email: body.email,
-        emailVerified: false,
-        password: body.password,
-        displayName: `${body.firstName} ${body.lastName || ''}`,
-        disabled: false,
-      });
-    } catch (error) {
-      throw new InternalServerError(
-        `Failed to create user in Firebase: ${error.message}`,
-      );
-    }
+    const hashedPassword = await bcrypt.hash(body.password, 10);
 
-    // Prepare user object for storage in our database
+    // Prepare user object for storage directly in our MongoDB database
     const user: Partial<IUser> = {
-      firebaseUID: userRecord.uid,
       email: body.email,
+      password: hashedPassword,
+      authProvider: 'local',
       firstName: body.firstName,
       lastName: body.lastName || '',
       profileImage: body.profileImage,
@@ -260,14 +333,14 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
       }
     }
 
-    return enrolledInvites.length > 0
-      ? {
-          userId: createdUserId,
-          invites: enrolledInvites,
-        }
-      : {
-          userId: createdUserId,
-        };
+    return {
+      uid: createdUserId,
+      userId: createdUserId,
+      email: body.email,
+      firstName: body.firstName,
+      lastName: body.lastName || '',
+      invites: enrolledInvites,
+    };
   }
 
   async googleSignup(body: GoogleSignUpBody, token: string): Promise<any> {
@@ -380,15 +453,23 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
     body: ChangePasswordBody,
     requestUser: IUser,
   ): Promise<{success: boolean; message: string}> {
+    // Check password confirmation
+    if (body.newPassword !== body.newPasswordConfirm) {
+      throw new ChangePasswordError('New passwords do not match');
+    }
+
+    if (requestUser.authProvider === 'local' || !requestUser.firebaseUID) {
+      const hashedPassword = await bcrypt.hash(body.newPassword, 10);
+      await this.userRepository.edit(requestUser._id.toString(), {
+        password: hashedPassword,
+      });
+      return {success: true, message: 'Password updated successfully'};
+    }
+
     // Verify user exists in Firebase
     const firebaseUser = await this.auth.getUser(requestUser.firebaseUID);
     if (!firebaseUser) {
       throw new ChangePasswordError('User not found');
-    }
-
-    // Check password confirmation
-    if (body.newPassword !== body.newPasswordConfirm) {
-      throw new ChangePasswordError('New passwords do not match');
     }
 
     // Update password in Firebase Auth
@@ -403,21 +484,28 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
     firebaseUID: string,
     body: Partial<IUser>,
   ): Promise<void> {
+    if (!firebaseUID) {
+      return;
+    }
     // Update Firebase display name only when name fields are provided.
     if (typeof body.firstName !== 'string' && typeof body.lastName !== 'string') {
       return;
     }
 
-    const firebaseUser = await this.auth.getUser(firebaseUID);
-    const [existingFirstName = '', ...existingLastNameParts] =
-      (firebaseUser.displayName || '').trim().split(' ');
-    const existingLastName = existingLastNameParts.join(' ');
+    try {
+      const firebaseUser = await this.auth.getUser(firebaseUID);
+      const [existingFirstName = '', ...existingLastNameParts] =
+        (firebaseUser.displayName || '').trim().split(' ');
+      const existingLastName = existingLastNameParts.join(' ');
 
-    const firstName = body.firstName ?? existingFirstName;
-    const lastName = body.lastName ?? existingLastName;
+      const firstName = body.firstName ?? existingFirstName;
+      const lastName = body.lastName ?? existingLastName;
 
-    await this.auth.updateUser(firebaseUID, {
-      displayName: `${firstName} ${lastName}`.trim(),
-    });
+      await this.auth.updateUser(firebaseUID, {
+        displayName: `${firstName} ${lastName}`.trim(),
+      });
+    } catch {
+      // Ignore if Firebase user update fails for Google/external users when disconnected
+    }
   }
 }

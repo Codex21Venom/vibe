@@ -64,47 +64,24 @@ detect_and_source_shell_config() {
   elif [ -f "$HOME/.config/fish/config.fish" ]; then
     source "$HOME/.config/fish/config.fish"
   else
-    log "⚠️ No shell config file found; you may need to add pnpm to your PATH manually."
-  fi
-}
-
-install_pnpm() {
-  if ! command -v pnpm >/dev/null 2>&1; then
-    log "📦 Installing pnpm..."
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsSL https://get.pnpm.io/install.sh | sh -
-    elif command -v wget >/dev/null 2>&1; then
-      wget -qO- https://get.pnpm.io/install.sh | sh -
-    else
-      log "❌ curl or wget is required to install pnpm."
-      exit 1
-    fi
-  fi
-
-  detect_and_source_shell_config
-
-  if ! command -v pnpm >/dev/null 2>&1; then
-    log "❌ Failed to install pnpm. Restart the setup."
-    exit 1
-  else
-    log "✅ pnpm: $(pnpm -v)"
+    log "⚠️ No shell config file found; you may need to add npm to your PATH manually."
   fi
 }
 
 install_node_deps() {
   log "📦 Installing required Node.js dependencies..."
-  pnpm i -g tsx
+  npm i -g tsx
   if ! command -v firebase >/dev/null 2>&1; then
-    pnpm i -g firebase-tools
+    npm i -g firebase-tools
   fi
   sudo chown -R "$USER:$(id -gn)" ./
-  pnpm i
+  npm i
 }
 
 install_cli() {
   log "⚙ Installing CLI..."
   cd cli
-  pnpm link --global
+  npm link
   cd ..
   log "✅ Vibe CLI installed and linked globally."
 }
@@ -153,7 +130,6 @@ if [[ "$(pwd)" == */scripts ]]; then
 fi
 
 check_repo
-install_pnpm
 verify_node
 install_node_deps
 install_cli
