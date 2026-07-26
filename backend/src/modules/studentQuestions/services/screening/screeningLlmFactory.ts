@@ -1,11 +1,8 @@
 import {screeningConfig} from '#root/config/screening.js';
 import {ScreeningLlm} from './ScreeningLlm.js';
-import {GroqScreeningLlm} from './GroqScreeningLlm.js';
-import {AnthropicScreeningLlm} from './AnthropicScreeningLlm.js';
+import {GeminiScreeningLlm} from './GeminiScreeningLlm.js';
 
-/** Pick the screening LLM implementation from config (demo: groq, prod: anthropic). */
+/** Pick the screening LLM implementation from config (gemini). */
 export function createScreeningLlm(): ScreeningLlm {
-  return screeningConfig.provider === 'anthropic'
-    ? new AnthropicScreeningLlm()
-    : new GroqScreeningLlm();
+  return new GeminiScreeningLlm();
 }

@@ -12,11 +12,11 @@ export function loggingHandler(
   const ip = chalk.magenta(req.socket.remoteAddress || '-');
   const timestamp = chalk.gray(`[${new Date().toISOString()}]`);
 
-  // Log request received
-  console.log(`${timestamp} ${method} ${url} from ${ip}`);
-
   // Log on finish
   res.on('finish', () => {
+    // Skip logging 304 Not Modified to reduce terminal spam
+    if (res.statusCode === 304) return;
+
     const duration = chalk.blue(`${Date.now() - start}ms`);
     const status =
       res.statusCode < 300

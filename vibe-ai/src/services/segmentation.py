@@ -220,7 +220,24 @@ consensus_boundaries
                 
                 for split_num in range(1, num_splits + 1):
                     # Calculate intermediate index proportionally
-                    intermediate_idx = start_idx + int((chunk_gap * split_num) / (num_splits + 1))
+                    ideal_idx = start_idx + int((chunk_gap * split_num) / (num_splits + 1))
+                    
+                    # Find the closest chunk boundary that ends a sentence
+                    best_idx = ideal_idx
+                    # Search outwards from ideal_idx up to 20 chunks away
+                    for offset in range(20):
+                        # Check right
+                        if ideal_idx + offset < end_idx - 3:
+                            if chunks[ideal_idx + offset - 1].text.strip().endswith(('.', '?', '!')):
+                                best_idx = ideal_idx + offset
+                                break
+                        # Check left
+                        if ideal_idx - offset > start_idx + 3:
+                            if chunks[ideal_idx - offset - 1].text.strip().endswith(('.', '?', '!')):
+                                best_idx = ideal_idx - offset
+                                break
+                    
+                    intermediate_idx = best_idx
                     
                     # Make sure it's not too close to existing boundaries
                     if (intermediate_idx not in new_indices and 

@@ -31,8 +31,8 @@ class QuestionBankService extends BaseService {
     super(database);
   }
 
-  async create(questionBank: QuestionBank): Promise<string> {
-    return this._withTransaction(async session => {
+  async create(questionBank: QuestionBank, externalSession?: ClientSession): Promise<string> {
+    const run = async (session: ClientSession) => {
       if (questionBank.courseId) {
         const course = await this.courseRepository.read(
           questionBank.courseId.toString(),
@@ -86,7 +86,9 @@ class QuestionBankService extends BaseService {
       }
       
       return questionBankId;
-    });
+    };
+
+    return externalSession ? run(externalSession) : this._withTransaction(run);
   }
   async getById(questionBankId: string): Promise<IQuestionBank | null> {
     return this._withTransaction(async session => {
@@ -139,8 +141,9 @@ class QuestionBankService extends BaseService {
   async addQuestion(
     questionBankId: string,
     questionId: string,
+    externalSession?: ClientSession,
   ): Promise<IQuestionBank | null> {
-    return this._withTransaction(async session => {
+    const run = async (session: ClientSession) => {
       const questionBank = await this.questionBankRepository.getById(
         questionBankId,
         session,
@@ -180,7 +183,9 @@ class QuestionBankService extends BaseService {
         questionBank,
         session,
       );
-    });
+    };
+
+    return externalSession ? run(externalSession) : this._withTransaction(run);
   }
 
   /**

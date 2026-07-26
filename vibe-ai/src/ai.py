@@ -22,6 +22,9 @@ from services.segmentation import SegmentationService
 from services.question_generation import QuestionGenerationService
 from services.mongo_storage import MongoStorageService
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Get webhook configuration from environment
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
@@ -66,15 +69,18 @@ async def start_audio_extraction_task(job_id: str, url) -> Dict[str, Any]:
         audio_file_path = await audio_service.extractAudio(url)
         print(f"Audio extracted successfully to: {audio_file_path}")
         
-        # Upload audio file to Google Cloud Storage
+        # Upload audio file to MongoDB GridFS
         run_id = str(uuid.uuid4())[:8]  # Use first 8 characters of UUID for uniqueness
-        file_name = f"audio/{job_id}_{run_id}_audio.wav"
-        print(f"Uploading audio file to GCS with name: {file_name}")
-        file_url = await storage_service.upload_file(audio_file_path, file_name, "audio/wav")
-        if file_url:
-            os.remove(audio_file_path)  # Clean up local file after upload
-        else:
-            file_url = audio_file_path  # Fallback to local file path
+        file_name = f"Temp_Audio/{job_id}_{run_id}_audio.wav"
+        print(f"Uploading audio file to MongoDB with name: {file_name}")
+        
+        try:
+            file_url = await storage_service.upload_file(audio_file_path, file_name, "audio/wav")
+            if not file_url:
+                raise Exception("Failed to upload audio to MongoDB")
+        finally:
+            if os.path.exists(audio_file_path):
+                os.remove(audio_file_path)  # Strict cleanup, no local storage fallback
         
         # Send webhook - Audio extraction completed
         audio_data = AudioData(

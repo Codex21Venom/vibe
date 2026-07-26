@@ -146,11 +146,19 @@ const AiWorkflow = () => {
   useEffect(() => {
     if (!aiJobId || !shouldPoll) return;
 
-    const interval = setInterval(async () => {
-      await handleRefreshStatus(true);
-    }, 5000);
+    const eventSource = connectToLiveStatusUpdates(
+      aiJobId,
+      (status) => {
+        handleRefreshStatus(true, status);
+      },
+      (error) => {
+        console.error("SSE Error:", error);
+      }
+    );
 
-    return () => clearInterval(interval);
+    return () => {
+      eventSource.close();
+    };
 
   }, [aiJobId, shouldPoll]);
 
@@ -582,13 +590,13 @@ const AiWorkflow = () => {
     }, 500);
   }
 
-  const handleRefreshStatus = async (isPolling: boolean = false) => {
+  const handleRefreshStatus = async (isPolling: boolean = false, statusData?: any) => {
     if (!aiJobId) return;
     try {
       if (!isPolling) {
         setProgress(0);
       }
-      const status = await aiSectionAPI.getJobStatus(aiJobId) as any;
+      const status = statusData || await aiSectionAPI.getJobStatus(aiJobId) as any;
 
       // Enrich status with detailed task runs if a task failed
       const failedTask = Object.entries(status.jobStatus || {}).find(([_, s]) => s === 'FAILED')?.[0];
@@ -597,6 +605,7 @@ const AiWorkflow = () => {
           const taskType = failedTask === 'transcriptGeneration' ? 'TRANSCRIPT_GENERATION'
             : failedTask === 'segmentation' ? 'SEGMENTATION'
               : failedTask === 'questionGeneration' ? 'QUESTION_GENERATION'
+                : failedTask === 'uploadContent' ? 'UPLOAD_CONTENT'
                 : failedTask.toUpperCase();
           const runs = await aiSectionAPI.getTaskStatus(aiJobId, taskType);
           status[failedTask] = runs;
@@ -655,6 +664,7 @@ const AiWorkflow = () => {
         } else if (currentStatus === "FAILED") {
           setProgress(0);
           setIsLoading(false);
+          setIsTranscribing(false);
           setShouldPoll(false);
         }
       }
@@ -1362,62 +1372,64 @@ export const Stepper = React.memo(({ currentJobData, aiJobStatus, firstStepLabel
   const getStepStatus = (currentJobData: any, stepKey: string) => {
 
     if (!currentJobData) return 'pending';
+    const js = currentJobData.jobStatus || {};
 
-    const taskToStep: Record<string, string> = {
-      'AUDIO_EXTRACTION': 'audioExtraction',
-      'TRANSCRIPT_GENERATION': 'transcriptGeneration',
-      'SEGMENTATION': 'segmentation',
-      'QUESTION_GENERATION': 'questionGeneration',
-      'UPLOAD_CONTENT': 'uploadContent',
+    const stepToJsKey: Record<string, string> = {
+      'audioExtraction': 'audioExtraction',
+      'transcriptGeneration': 'transcriptGeneration',
+      'segmentation': 'segmentation',
+      'questionGeneration': 'questionGeneration',
+      'uploadContent': 'uploadContent',
     };
 
-    const currentTaskStep = taskToStep[currentJobData.task] || null;
+    const jsKey = stepToJsKey[stepKey];
+    if (!jsKey) return 'pending';
 
-    if (!currentTaskStep) return 'pending';
+    const status = (js[jsKey] || '').toLowerCase();
+    
+    if (status === 'completed') return 'completed';
+    if (status === 'running' || status === 'working') return 'active';
+    if (status === 'failed') return 'failed';
+    if (status === 'stopped') return 'stopped';
+    if (status === 'waiting') return 'waiting';
 
     const stepOrder = ['audioExtraction', 'transcriptGeneration', 'segmentation', 'questionGeneration', 'uploadContent'];
-
     const stepIndex = stepOrder.indexOf(stepKey);
-    const currentIndex = stepOrder.indexOf(currentTaskStep);
+    
+    let currentIndex = 0;
+    if (js.uploadContent === 'RUNNING' || js.uploadContent === 'FAILED') currentIndex = 4;
+    else if (js.questionGeneration === 'RUNNING' || js.questionGeneration === 'FAILED') currentIndex = 3;
+    else if (js.segmentation === 'RUNNING' || js.segmentation === 'FAILED') currentIndex = 2;
+    else if (js.transcriptGeneration === 'RUNNING' || js.transcriptGeneration === 'FAILED') currentIndex = 1;
+    else if (js.audioExtraction === 'RUNNING' || js.audioExtraction === 'FAILED') currentIndex = 0;
+    else if (js.uploadContent === 'COMPLETED') currentIndex = 4;
+    else if (js.questionGeneration === 'COMPLETED') currentIndex = 4;
+    else if (js.segmentation === 'COMPLETED') currentIndex = 3;
+    else if (js.transcriptGeneration === 'COMPLETED') currentIndex = 2;
+    else if (js.audioExtraction === 'COMPLETED') currentIndex = 1;
 
-    if (stepIndex === -1 || currentIndex === -1) return 'pending';
+    if (stepIndex < currentIndex) return 'completed';
 
-    if (stepIndex < currentIndex) {
-      return 'completed';
-    } else if (stepIndex > currentIndex) {
-      return 'pending';
-    } else {
-      // Current step
-      let status = currentJobData.status?.toLowerCase() || 'pending';
-      if (status === 'running') return 'active';
-      if (status === 'completed') return 'completed';
-      if (status === 'failed') return 'failed';
-      if (status === 'stopped') return 'stopped';
-      if (status === 'waiting') return 'waiting';
-      return 'pending';
-    }
+    return 'pending';
   }
 
   const activeStep = React.useMemo(() => {
     if (!currentJobData) return null;
+    const js = currentJobData.jobStatus || {};
+    
+    if (js.uploadContent === 'RUNNING' || js.uploadContent === 'FAILED' || js.uploadContent === 'STOPPED') return 'uploadContent';
+    if (js.questionGeneration === 'RUNNING' || js.questionGeneration === 'FAILED' || js.questionGeneration === 'STOPPED') return 'questionGeneration';
+    if (js.segmentation === 'RUNNING' || js.segmentation === 'FAILED' || js.segmentation === 'STOPPED') return 'segmentation';
+    if (js.transcriptGeneration === 'RUNNING' || js.transcriptGeneration === 'FAILED' || js.transcriptGeneration === 'STOPPED') return 'transcriptGeneration';
+    if (js.audioExtraction === 'RUNNING' || js.audioExtraction === 'FAILED' || js.audioExtraction === 'STOPPED') return 'audioExtraction';
 
-    if (currentJobData.task === 'AUDIO_EXTRACTION') {
-      return 'audioExtraction';
-    }
-    if (currentJobData.task === 'TRANSCRIPT_GENERATION') {
-      return 'transcriptGeneration';
-    }
-    if (currentJobData.task === 'SEGMENTATION') {
-      return 'segmentation';
-    }
-    if (currentJobData.task === 'QUESTION_GENERATION') {
-      return 'questionGeneration';
-    }
-    if (currentJobData.task === 'UPLOAD_CONTENT') {
-      return 'uploadContent';
-    }
+    if (js.uploadContent === 'COMPLETED') return 'uploadContent';
+    if (js.questionGeneration === 'COMPLETED') return 'uploadContent';
+    if (js.segmentation === 'COMPLETED') return 'questionGeneration';
+    if (js.transcriptGeneration === 'COMPLETED') return 'segmentation';
+    if (js.audioExtraction === 'COMPLETED') return 'transcriptGeneration';
 
-    return null;
+    return 'audioExtraction';
   }, [currentJobData]);
 
   return (
@@ -4016,10 +4028,11 @@ export const UploadContentView: React.FC<UploadContentProps> = ({
               id="questions-per-quiz"
               type="number"
               min={1}
-              value={uploadParams.questionsPerQuiz || 1}
-              onChange={(e) =>
-                setUploadParams((prev) => ({ ...prev, questionsPerQuiz: Number(e.target.value) }))
-              }
+              value={uploadParams.questionsPerQuiz === null ? '' : uploadParams.questionsPerQuiz}
+              onChange={(e) => {
+                const val = e.target.value;
+                setUploadParams((prev) => ({ ...prev, questionsPerQuiz: val === '' ? null : Number(val) }));
+              }}
               className="h-10"
             />
           </div>

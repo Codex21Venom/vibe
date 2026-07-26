@@ -170,8 +170,9 @@ export class ItemService extends BaseService {
     moduleId: string,
     sectionId: string,
     body: CreateItemBody,
+    externalSession?: ClientSession
   ) {
-    return this._withTransaction(async session => {
+    const doWork = async (session: ClientSession) => {
       const versionStatus=await this.courseRepo.getCourseVersionStatus(versionId,session);
             
       if(versionStatus==="archived"){
@@ -302,7 +303,13 @@ export class ItemService extends BaseService {
         version: updatedVersion,
         createdItem: newItemDB,
       };
-    });
+    };
+
+    if (externalSession) {
+      return await doWork(externalSession);
+    } else {
+      return this._withTransaction(doWork);
+    }
   }
 
   private shuffleArray<T>(arr: T[]): T[] {

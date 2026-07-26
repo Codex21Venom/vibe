@@ -32,7 +32,12 @@ import { QuestionFactory } from '#root/modules/quizzes/classes/index.js';
 import { CreateItemBody } from '#root/modules/courses/classes/index.js';
 import { COURSES_TYPES } from '#root/modules/courses/types.js';
 import { ItemService } from '#root/modules/courses/services/ItemService.js';
+import { ICourseRepository } from '#root/shared/database/interfaces/ICourseRepository.js';
+import { IItemRepository } from '#root/shared/database/interfaces/IItemRepository.js';
+import { ItemsGroup } from '#root/modules/courses/classes/transformers/Item.js';
+import { Section } from '#root/modules/courses/classes/transformers/Section.js';
 import { QuestionBank } from '#root/modules/quizzes/classes/transformers/QuestionBank.js';
+
 import { QUIZZES_TYPES } from '#root/modules/quizzes/types.js';
 import {
   QuestionBankService,
@@ -69,6 +74,12 @@ export class GenAIService extends BaseService {
 
     @inject(COURSES_TYPES.ItemService)
     private readonly itemService: ItemService,
+
+    @inject(GLOBAL_TYPES.CourseRepo)
+    private readonly courseRepo: ICourseRepository,
+
+    @inject(COURSES_TYPES.ItemRepo)
+    private readonly itemRepo: IItemRepository,
 
     @inject(QUIZZES_TYPES.QuestionBankService)
     private readonly questionBankService: QuestionBankService,
@@ -253,8 +264,22 @@ export class GenAIService extends BaseService {
         }
 
         jobState.parameters = resolvedUploadParameters;
-        const result = await this.uploadContent(jobId, jobState);
-        return result;
+        
+        // Update status to RUNNING in the current transaction
+        job.jobStatus.uploadContent = TaskStatus.RUNNING;
+        await this.genAIRepository.update(jobId, {
+          jobStatus: job.jobStatus,
+          uploadParameters: resolvedUploadParameters,
+        }, session);
+
+        // Run asynchronously outside the transaction to prevent deadlock
+        setTimeout(() => {
+          this.uploadContent(jobId, jobState).catch(err => {
+            console.error(`Async uploadContent error for job ${jobId}:`, err);
+          });
+        }, 0);
+
+        return { message: "Upload content task started asynchronously" };
       }
       return this.webhookService.approveTaskStart(jobId, jobState);
     });
@@ -319,8 +344,22 @@ export class GenAIService extends BaseService {
         }
 
         jobState.parameters = resolvedUploadParameters;
-        const result = await this.uploadContent(jobId, jobState);
-        return result;
+
+        // Update status to RUNNING in the current transaction
+        job.jobStatus.uploadContent = TaskStatus.RUNNING;
+        await this.genAIRepository.update(jobId, {
+          jobStatus: job.jobStatus,
+          uploadParameters: resolvedUploadParameters,
+        }, session);
+
+        // Run asynchronously outside the transaction to prevent deadlock
+        setTimeout(() => {
+          this.uploadContent(jobId, jobState).catch(err => {
+            console.error(`Async uploadContent error for job ${jobId}:`, err);
+          });
+        }, 0);
+
+        return { message: "Upload content task rerun started asynchronously" };
       }
       return this.webhookService.rerunTask(jobId, jobState);
     });
@@ -872,8 +911,11 @@ export class GenAIService extends BaseService {
   }
 
   async uploadContent(jobId: string, jobState: JobState): Promise<any> {
-    return this._withTransaction(async session => {
+    const session = undefined as any;
+    try {
       const jobData = await this.genAIRepository.getById(jobId, session);
+      const taskData = await this.genAIRepository.getTaskDataByJobId(jobId, session);
+      const mediaUrl = jobData?.url || taskData?.audioExtraction?.[0]?.fileUrl || '';
       const normalizeBloomLevel = (input: unknown): BloomLevelKey => {
         if (typeof input === 'number') {
           if (input === 1) return 'knowledge';
@@ -1081,9 +1123,50 @@ export class GenAIService extends BaseService {
           throw new NotFoundError(`Job with ID ${jobId} not found`);
         }
         let allQuestionsData: any[] = [];
-        const uploadParams =
-          (jobState.parameters as UploadParameters) ?? jobData.uploadParameters;
+        const uploadParams = {
+          ...jobData.uploadParameters,
+          ...(jobState.parameters || {})
+        } as UploadParameters;
         const curatedQuestions = uploadParams?.questions;
+
+        let sectionIdToUse = uploadParams.sectionId;
+        if (!sectionIdToUse && uploadParams.moduleId) {
+          const version = await this.courseRepo.readVersion(uploadParams.versionId, session);
+          const module = version?.modules.find(m => m.moduleId?.toString() === uploadParams.moduleId);
+          if (module) {
+            const activeSections = module.sections?.filter(s => !s.isDeleted) || [];
+            if (activeSections.length > 0) {
+              // Append to the last section
+              sectionIdToUse = activeSections[activeSections.length - 1].sectionId?.toString();
+            } else {
+              // Create a section
+              const newSectionId = new ObjectId();
+              let itemsGroup = new ItemsGroup(newSectionId);
+              itemsGroup = await this.itemRepo.createItemsGroup(itemsGroup, session);
+
+              const newSection = new Section({
+                name: 'AI Generated Content',
+                description: 'Content automatically generated by AI',
+              } as any, module.sections || []);
+              
+              newSection.sectionId = newSectionId;
+              newSection.itemsGroupId = new ObjectId(itemsGroup._id);
+
+              module.sections = module.sections || [];
+              module.sections.push(newSection);
+              module.updatedAt = new Date();
+              if (version) {
+                version.updatedAt = new Date();
+                await this.courseRepo.updateVersion(uploadParams.versionId, version, session);
+              }
+              
+              sectionIdToUse = newSectionId.toString();
+            }
+          }
+        }
+        if (!sectionIdToUse) {
+          throw new BadRequestError("Unable to resolve or create a section to upload content.");
+        }
 
         // Prefer curated questions from the upload payload when provided.
         if (Array.isArray(curatedQuestions) && curatedQuestions.length > 0) {
@@ -1166,17 +1249,18 @@ export class GenAIService extends BaseService {
             description: `Video content`,
             type: ItemType.VIDEO,
             videoDetails: {
-              URL: jobData.url,
+              URL: mediaUrl,
               startTime: this.secondsToTimeString(segmentStartTime),
               endTime: this.secondsToTimeString(currentSegmentEndTime),
               points: 10,
             },
           };
           const createdVideoItem = await this.itemService.createItem(
-            (jobState.parameters as UploadParameters).versionId,
-            (jobState.parameters as UploadParameters).moduleId,
-            (jobState.parameters as UploadParameters).sectionId,
+            uploadParams.versionId,
+            uploadParams.moduleId,
+            sectionIdToUse,
             videoItemBody,
+            session
           );
           createdVideoItemsInfo.push({
             id: createdVideoItem.createdItem?._id?.toString(),
@@ -1286,10 +1370,10 @@ export class GenAIService extends BaseService {
                   title: questionBankName,
                   description: `Question bank for video segment from ${segmentStartTime} to ${currentSegmentEndTime} (Bloom: ${bloomLevel}).`,
                   courseId: new ObjectId(
-                    (jobState.parameters as UploadParameters).courseId,
+                    uploadParams.courseId,
                   ),
                   courseVersionId: new ObjectId(
-                    (jobState.parameters as UploadParameters).versionId,
+                    uploadParams.versionId,
                   ),
                   questions: [],
                   tags: [
@@ -1302,6 +1386,7 @@ export class GenAIService extends BaseService {
 
                 const questionBankId = await this.questionBankService.create(
                   questionBank,
+                  session
                 );
 
                 const createdQuestionIds: string[] = [];
@@ -1329,13 +1414,18 @@ export class GenAIService extends BaseService {
 
                     const questionId = await this.questionService.create(
                       questionnew,
+                      session
                     );
                     createdQuestionIds.push(questionId);
 
                     await this.questionBankService.addQuestion(
                       questionBankId,
                       questionId,
+                      session
                     );
+                    
+                    // Throttle writes to avoid MongoDB Free Tier rate limits (100 ops/sec)
+                    await new Promise(resolve => setTimeout(resolve, 50));
                   } catch (questionError) {
                     console.warn(
                       `Failed to create question for segment ${currentSegmentId} and bloom ${bloomLevel}:`,
@@ -1387,10 +1477,11 @@ export class GenAIService extends BaseService {
             };
 
             const createdQuizItem = await this.itemService.createItem(
-              (jobState.parameters as UploadParameters).versionId,
-              (jobState.parameters as UploadParameters).moduleId,
-              (jobState.parameters as UploadParameters).sectionId,
+              uploadParams.versionId,
+              uploadParams.moduleId,
+              sectionIdToUse,
               quizItemBody,
+              session
             );
 
             // Link each Bloom-specific QuestionBank to the Quiz
@@ -1410,7 +1501,7 @@ export class GenAIService extends BaseService {
                     bankId: bank.id,
                     count: bloomCountsForAttempt[bank.bloomLevel],
                     tags: [`bloom_${bank.bloomLevel}`, 'ai_generated'],
-                  });
+                  }, session);
                 } catch (linkError) {
                   console.warn(
                     `Failed to link question bank ${bank.id} to quiz ${quizId}:`,
@@ -1433,10 +1524,10 @@ export class GenAIService extends BaseService {
                 title: legacyBankName,
                 description: `Question bank for video segment from ${segmentStartTime} to ${currentSegmentEndTime}.`,
                 courseId: new ObjectId(
-                  (jobState.parameters as UploadParameters).courseId,
+                  uploadParams.courseId,
                 ),
                 courseVersionId: new ObjectId(
-                  (jobState.parameters as UploadParameters).versionId,
+                  uploadParams.versionId,
                 ),
                 questions: [],
                 tags: [`segment_${currentSegmentId}`, 'ai_generated'],
@@ -1445,6 +1536,7 @@ export class GenAIService extends BaseService {
 
               const legacyBankId = await this.questionBankService.create(
                 legacyQuestionBank,
+                session
               );
 
               const legacyQuestionIds: string[] = [];
@@ -1473,13 +1565,18 @@ export class GenAIService extends BaseService {
 
                   const questionId = await this.questionService.create(
                     legacyQuestion,
+                    session
                   );
                   legacyQuestionIds.push(questionId);
 
                   await this.questionBankService.addQuestion(
                     legacyBankId,
                     questionId,
+                    session
                   );
+                  
+                  // Throttle writes to avoid MongoDB Free Tier rate limits
+                  await new Promise(resolve => setTimeout(resolve, 50));
                 } catch (questionError) {
                   console.warn(
                     `Failed to create question for segment ${currentSegmentId}:`,
@@ -1514,10 +1611,11 @@ export class GenAIService extends BaseService {
               };
 
               const legacyQuizItem = await this.itemService.createItem(
-                (jobState.parameters as UploadParameters).versionId,
-                (jobState.parameters as UploadParameters).moduleId,
-                (jobState.parameters as UploadParameters).sectionId,
+                uploadParams.versionId,
+                uploadParams.moduleId,
+                sectionIdToUse,
                 legacyQuizItemBody,
+                session
               );
 
               const legacyQuizId = legacyQuizItem.createdItem?._id?.toString();
@@ -1526,7 +1624,7 @@ export class GenAIService extends BaseService {
                   bankId: legacyBankId,
                   count: jobData.uploadParameters.questionsPerQuiz ?? 2,
                   tags: ['AI Generated'],
-                });
+                }, session);
               }
 
               createdQuestionBanksInfo.push({
@@ -1545,6 +1643,9 @@ export class GenAIService extends BaseService {
                 questionCount: legacyQuestionIds.length,
               });
             }
+            
+            // Throttle between segments to avoid MongoDB Free Tier burst limits
+            await new Promise(resolve => setTimeout(resolve, 200));
           }
 
           previousSegmentEndTime = currentSegmentEndTime;
@@ -1601,10 +1702,15 @@ export class GenAIService extends BaseService {
         });
         await this.genAIRepository.updateTaskData(jobId, taskDAta, session);
         console.error(`Error during content upload for job ${jobId}:`, error);
-        throw new InternalServerError(
-          `Failed to upload content for job ${jobId}: ${error.message}`,
-        );
+
+        return {
+          status: TaskStatus.FAILED,
+          message: `Failed to upload content for job ${jobId}: ${error.message}`,
+        };
       }
-    });
+    } catch (outerError) {
+      console.error(`Unhandled error in uploadContent for job ${jobId}:`, outerError);
+      throw outerError;
+    }
   }
 }

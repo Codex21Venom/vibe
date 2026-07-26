@@ -217,12 +217,24 @@ const AdvancedAiWorkflow = () => {
             setAiJobStatus({ ...status, task: currentTaskData.task, status: currentTaskData.status });
             updateCurrentJob(currentTaskData.task, currentTaskData.status);
             
-            if (currentTaskData.task.toLowerCase() === 'audioextraction' && currentTaskData.status.toLowerCase() === 'completed') {
-                setAudioExtractionStatus('completed');
+            if (currentTaskData.task.toLowerCase() === 'audioextraction') {
+                if (currentTaskData.status.toLowerCase() === 'completed') {
+                    setAudioExtractionStatus('completed');
+                } else if (currentTaskData.status.toLowerCase() === 'failed') {
+                    setAudioExtractionStatus('failed');
+                }
             }
 
             if (currentTaskData.status === "COMPLETED") {
                 handleShowHandleResult(currentJob.task);
+            } else if (currentTaskData.status === "FAILED") {
+                setProgress(0);
+                setIsLoading(false);
+                setIsTranscribing(false);
+                setShouldPoll(false);
+                if (currentJob.task === 'AUDIO_EXTRACTION') {
+                    setAudioExtractionStatus('failed');
+                }
             }
           }
         } catch (error) {
@@ -554,21 +566,35 @@ const AdvancedAiWorkflow = () => {
                             
                             <JobHeader currentJob={currentJob} handleRefreshStatus={() => handleRefreshStatus()} aiJobId={!!aiJobId} />
                             
-                            {currentJob.task === 'AUDIO_EXTRACTION' && audioExtractionStatus === 'processing' ? (
+                            {currentJob.task !== 'COMPLETED' && currentJob.status !== 'WAITING' ? (
                                 <div className="space-y-4 bg-card p-6 rounded-2xl border shadow-sm">
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="flex items-center gap-2">
                                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                                                <UploadCloud className="w-6 h-6 text-primary animate-pulse" />
+                                                {currentJob.task === 'AUDIO_EXTRACTION' && <UploadCloud className="w-6 h-6 text-primary animate-pulse" />}
+                                                {currentJob.task === 'TRANSCRIPT_GENERATION' && <FileText className="w-6 h-6 text-primary animate-pulse" />}
+                                                {currentJob.task === 'SEGMENTATION' && <ListChecks className="w-6 h-6 text-primary animate-pulse" />}
+                                                {currentJob.task === 'QUESTION_GENERATION' && <MessageSquareText className="w-6 h-6 text-primary animate-pulse" />}
+                                                {currentJob.task === 'UPLOAD_CONTENT' && <UploadCloud className="w-6 h-6 text-primary animate-pulse" />}
                                             </div>
                                             <div>
-                                                <h3 className="font-bold text-lg">Extracting Audio</h3>
-                                                <p className="text-xs text-muted-foreground">{estimatedTimeRemaining ? `Estimated: ${estimatedTimeRemaining}` : 'Optimizing video for extraction...'}</p>
+                                                <h3 className="font-bold text-lg">
+                                                    {currentJob.task === 'AUDIO_EXTRACTION' && 'Extracting Audio'}
+                                                    {currentJob.task === 'TRANSCRIPT_GENERATION' && 'Generating Transcript'}
+                                                    {currentJob.task === 'SEGMENTATION' && 'Segmenting Content'}
+                                                    {currentJob.task === 'QUESTION_GENERATION' && 'Generating Questions'}
+                                                    {currentJob.task === 'UPLOAD_CONTENT' && 'Uploading Content'}
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {currentJob.task === 'AUDIO_EXTRACTION' ? (estimatedTimeRemaining ? `Estimated: ${estimatedTimeRemaining}` : 'Optimizing video for extraction...') : 'Processing...'}
+                                                </p>
                                             </div>
                                         </div>
-                                        <span className="text-2xl font-bold text-primary">{Math.round(audioExtractionProgress)}%</span>
+                                        {currentJob.task === 'AUDIO_EXTRACTION' && (
+                                            <span className="text-2xl font-bold text-primary">{Math.round(audioExtractionProgress)}%</span>
+                                        )}
                                     </div>
-                                    <ProgressiveProgressBar value={audioExtractionProgress} showTooltip={true} />
+                                    <ProgressiveProgressBar value={currentJob.task === 'AUDIO_EXTRACTION' ? audioExtractionProgress : progress} showTooltip={true} />
                                 </div>
                             ) : (
                                 <ProgressiveProgressBar value={progress} showTooltip={isLoading || isTranscribing} />

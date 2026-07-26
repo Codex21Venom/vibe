@@ -189,7 +189,7 @@ export class GenAIRepository {
 
   async update(
     jobId: string,
-    jobData: Partial<JobBody>,
+    jobData: Partial<GenAIBody>,
     session?: ClientSession,
   ): Promise<GenAIBody> {
     await this.init();

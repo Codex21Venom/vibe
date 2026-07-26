@@ -2,6 +2,8 @@ import { GLOBAL_TYPES } from '#root/types.js';
 import { IDatabase } from '#shared/database/interfaces/IDatabase.js';
 import { injectable, inject } from 'inversify';
 import { Db, MongoClient, Document, Collection } from 'mongodb';
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 /**
  * @class MongoDatabase

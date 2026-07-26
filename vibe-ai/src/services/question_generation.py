@@ -3,7 +3,7 @@ import os
 from typing import Dict, List, Optional
 import asyncio
 from fastapi import HTTPException
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 
@@ -15,17 +15,17 @@ class QuestionGenerationService:
     """Service for generating questions from transcript segments.
 
     Uses LangChain 1.0 create_agent + ToolStrategy for structured output,
-    backed by a vLLM endpoint serving Qwen/Qwen3-30B-A3B.
+    backed by Gemini.
     """
 
-    DEFAULT_MODEL = "claude-3-5-sonnet-20241022"
+    DEFAULT_MODEL = "gemini-2.5-flash"
 
     def __init__(self):
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = os.getenv("GEMINI_API_KEY")
 
-        self.model = ChatAnthropic(
+        self.model = ChatGoogleGenerativeAI(
             model=self.DEFAULT_MODEL,
-            api_key=api_key,
+            google_api_key=api_key,
             temperature=0,
             timeout=300,
         )
@@ -41,14 +41,14 @@ class QuestionGenerationService:
             "BIN": SOL_SCHEMA,
         }
 
-    def _get_model(self, model_name: str) -> ChatAnthropic:
+    def _get_model(self, model_name: str) -> ChatGoogleGenerativeAI:
         """Return a model instance, reusing the default or building a new one."""
         if model_name == self.DEFAULT_MODEL:
             return self.model
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        return ChatAnthropic(
+        api_key = os.getenv("GEMINI_API_KEY")
+        return ChatGoogleGenerativeAI(
             model=model_name,
-            api_key=api_key,
+            google_api_key=api_key,
             temperature=0,
             timeout=300,
         )
@@ -83,7 +83,7 @@ class QuestionGenerationService:
             return result["questions"]
         return result
 
-    def _build_agent(self, model: ChatAnthropic, schema: dict, system_prompt: str):
+    def _build_agent(self, model: ChatGoogleGenerativeAI, schema: dict, system_prompt: str):
         """Create a LangChain agent with ToolStrategy structured output."""
         return create_agent(
             model=model,

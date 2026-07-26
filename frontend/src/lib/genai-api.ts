@@ -251,13 +251,11 @@ export const stopJobTask = async (jobId: string): Promise<void> => {
 
 export const connectToLiveStatusUpdates = (
   jobId: string,
-  setAiJobStatus: (status: JobStatus) => void
-  // onMessage: (status: JobStatus) => void,
-  // onError?: (error: any) => void
+  onMessage: (status: JobStatus) => void,
+  onError?: (error: any) => void
 ): EventSource => {
 
   const url = `${API_BASE_URL}/genai/${jobId}/live`;
-
 
   const eventSource = new EventSourcePolyfill(url, {
     headers: { Authorization: `Bearer ${getAuthToken()}` },
@@ -267,24 +265,23 @@ export const connectToLiveStatusUpdates = (
   });
 
   eventSource.onmessage = (event) => {
-    try {
-
-      // onMessage(data);
-    } catch (err) {
-      console.error('Failed to parse SSE message:', err);
-    }
+    // Standard un-named SSE messages (if any)
   };
 
   eventSource.addEventListener('jobStatus', (event) => {
     const messageEvent = event as MessageEvent;
-    let data: JobStatus = JSON.parse(messageEvent.data);
-    setAiJobStatus(data);
+    try {
+      const data: JobStatus = JSON.parse(messageEvent.data);
+      onMessage(data);
+    } catch (err) {
+      console.error('Failed to parse SSE message:', err);
+    }
   });
 
   eventSource.onerror = (error) => {
     // EventSource may emit transient reconnect errors; keep this as warning noise only.
     console.warn('SSE reconnecting...', error);
-    // if (onError) onError(error);
+    if (onError) onError(error);
   };
 
   return eventSource;

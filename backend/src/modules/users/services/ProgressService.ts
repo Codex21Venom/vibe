@@ -919,17 +919,18 @@ class ProgressService extends BaseService {
     let isFirstSection = false;
     let isFirstModule = false;
 
-    const sortedModules = [...courseVersion.modules].sort((a, b) =>
-      a.order.localeCompare(b.order),
-    );
+    const sortedModules = [...courseVersion.modules]
+      .filter(m => !m.isDeleted && !m.isHidden)
+      .sort((a, b) => a.order.localeCompare(b.order));
     const firstModule = sortedModules[0].moduleId;
     if (firstModule?.toString() === moduleId) {
       isFirstModule = true;
     }
 
-    const sortedSections = courseVersion.modules
+    const sortedSections = sortedModules
       .find(module => module.moduleId?.toString() === moduleId)
-      ?.sections.sort((a, b) => a.order.localeCompare(b.order));
+      ?.sections.filter(s => !s.isDeleted && !s.isHidden)
+      .sort((a, b) => a.order.localeCompare(b.order));
     const firstSection = sortedSections?.[0].sectionId;
     if (firstSection?.toString() === sectionId) {
       isFirstSection = true;
@@ -963,9 +964,10 @@ class ProgressService extends BaseService {
         module => module.moduleId?.toString() === moduleId,
       );
       const prevModule = sortedModules[currentModuleIndex - 1];
-      const lastSection = prevModule?.sections.sort((a, b) =>
-        a.order.localeCompare(b.order),
-      )[prevModule.sections.length - 1];
+      const lastSection = prevModule?.sections
+        .filter(s => !s.isDeleted && !s.isHidden)
+        .sort((a, b) => a.order.localeCompare(b.order)
+      )[prevModule.sections.filter(s => !s.isDeleted && !s.isHidden).length - 1];
       const itemsGroup = await this.itemRepo.readItemsGroup(
         lastSection?.itemsGroupId.toString(),
       );
@@ -1510,20 +1512,73 @@ class ProgressService extends BaseService {
         cohortId
       );
 
-      if (progress?.completed === true) {
-        const courseVersion =
-          await this.courseRepo.readVersion(courseVersionId);
+      let needsReset = false;
+      let courseVersion;
+      if (progress && !progress.completed && progress.currentModule) {
+        courseVersion = await this.courseRepo.readVersion(courseVersionId);
+        const moduleExists = courseVersion.modules?.some(m => m.moduleId?.toString() === progress.currentModule?.toString());
+        if (!moduleExists) {
+          needsReset = true;
+        } else {
+          const module = courseVersion.modules.find(m => m.moduleId?.toString() === progress.currentModule?.toString());
+          const sectionExists = module?.sections?.some(s => s.sectionId?.toString() === progress.currentSection?.toString());
+          if (!sectionExists) {
+            needsReset = true;
+          } else {
+            const section = module.sections.find(s => s.sectionId?.toString() === progress.currentSection?.toString());
+            if (section?.itemsGroupId) {
+              const itemsGroup = await this.itemRepo.readItemsGroup(section.itemsGroupId.toString());
+              const itemExists = itemsGroup?.items?.some((i: any) => i._id?.toString() === progress.currentItem?.toString() && !i.isDeleted);
+              if (!itemExists) {
+                needsReset = true;
+              }
+            }
+          }
+        }
+      }
 
-        const initialProgress = await this.initializeProgress(
-          userId.toString(),
-          courseId,
-          courseVersionId,
-          courseVersion,
-        );
+      if (progress?.completed === true || needsReset) {
+        if (!courseVersion) {
+          courseVersion = await this.courseRepo.readVersion(courseVersionId);
+        }
 
-        progress.currentModule = initialProgress.currentModule;
-        progress.currentSection = initialProgress.currentSection;
-        progress.currentItem = initialProgress.currentItem;
+        let targetProgress;
+        if (needsReset) {
+           const completedItems = await this.progressRepository.getCompletedItems(userId.toString(), courseId, courseVersionId);
+           const completedItemsSet = new Set(completedItems);
+           targetProgress = await this.findFirstIncompleteItemInSequence(courseVersion, completedItemsSet);
+           if (!targetProgress) {
+             targetProgress = await this.initializeProgress(userId.toString(), courseId, courseVersionId, courseVersion);
+           }
+
+           if (targetProgress && progress) {
+             await this.progressRepository.updateProgress(
+               userId.toString(),
+               courseId,
+               courseVersionId,
+               {
+                 currentModule: targetProgress.moduleId ?? targetProgress.currentModule,
+                 currentSection: targetProgress.sectionId ?? targetProgress.currentSection,
+                 currentItem: targetProgress.itemId ?? targetProgress.currentItem,
+                 ...(cohortId ? { cohortId } : {}),
+               },
+               cohortId
+             );
+           }
+        } else {
+           targetProgress = await this.initializeProgress(
+             userId.toString(),
+             courseId,
+             courseVersionId,
+             courseVersion,
+           );
+        }
+
+        if (targetProgress && progress) {
+          progress.currentModule = targetProgress.moduleId ?? targetProgress.currentModule;
+          progress.currentSection = targetProgress.sectionId ?? targetProgress.currentSection;
+          progress.currentItem = targetProgress.itemId ?? targetProgress.currentItem;
+        }
       }
 
       // if (!progress) {

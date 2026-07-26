@@ -184,13 +184,6 @@ export class CourseController {
       hpSystem,
       baseHp,
     );
-    // //3. Create enrollment for the user
-    // await this.enrollmentService.enrollUser(
-    //   userId,
-    //   createdCourse._id.toString(),
-    //   String(createdCourse.versions[0].toString()),
-    //   'INSTRUCTOR',
-    // );
 
     setAuditTrail(req, {
       category: AuditCategory.COURSE,

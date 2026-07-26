@@ -157,40 +157,44 @@ const WORKFLOW_STEPS = [
 const getStepStatus = (jobStatus: any, stepKey: string) => {
   if (!jobStatus) return 'pending';
 
-  const taskToStep: Record<string, string> = {
-    'AUDIO_EXTRACTION': 'audioExtraction',
-    'TRANSCRIPT_GENERATION': 'transcriptGeneration',
-    'SEGMENTATION': 'segmentation',
-    'QUESTION_GENERATION': 'questionGeneration',
-    'UPLOAD_CONTENT': 'uploadContent',
+  const js = jobStatus.jobStatus || {};
+  const stepToJsKey: Record<string, string> = {
+    'audioExtraction': 'audioExtraction',
+    'transcriptGeneration': 'transcriptGeneration',
+    'segmentation': 'segmentation',
+    'questionGeneration': 'questionGeneration',
+    'uploadContent': 'uploadContent',
   };
 
-  const currentTaskStep = taskToStep[jobStatus.task] || null;
+  const jsKey = stepToJsKey[stepKey];
+  if (!jsKey) return 'pending';
 
-  if (!currentTaskStep) return 'pending';
+  const status = (js[jsKey] || '').toLowerCase();
+  
+  if (status === 'completed') return 'completed';
+  if (status === 'running' || status === 'working') return 'active';
+  if (status === 'failed') return 'failed';
+  if (status === 'stopped') return 'stopped';
+  if (status === 'waiting') return 'waiting';
 
   const stepOrder = ['audioExtraction', 'transcriptGeneration', 'segmentation', 'questionGeneration', 'uploadContent'];
-
   const stepIndex = stepOrder.indexOf(stepKey);
-  const currentIndex = stepOrder.indexOf(currentTaskStep);
+  
+  let currentIndex = 0;
+  if (js.uploadContent === 'RUNNING' || js.uploadContent === 'FAILED') currentIndex = 4;
+  else if (js.questionGeneration === 'RUNNING' || js.questionGeneration === 'FAILED') currentIndex = 3;
+  else if (js.segmentation === 'RUNNING' || js.segmentation === 'FAILED') currentIndex = 2;
+  else if (js.transcriptGeneration === 'RUNNING' || js.transcriptGeneration === 'FAILED') currentIndex = 1;
+  else if (js.audioExtraction === 'RUNNING' || js.audioExtraction === 'FAILED') currentIndex = 0;
+  else if (js.uploadContent === 'COMPLETED') currentIndex = 4;
+  else if (js.questionGeneration === 'COMPLETED') currentIndex = 4;
+  else if (js.segmentation === 'COMPLETED') currentIndex = 3;
+  else if (js.transcriptGeneration === 'COMPLETED') currentIndex = 2;
+  else if (js.audioExtraction === 'COMPLETED') currentIndex = 1;
 
-  if (stepIndex === -1 || currentIndex === -1) return 'pending';
+  if (stepIndex < currentIndex) return 'completed';
 
-  if (stepIndex < currentIndex) {
-    return 'completed';
-  } else if (stepIndex > currentIndex) {
-    return 'pending';
-  } else {
-    // Current step
-    let status = jobStatus.status?.toLowerCase() || 'pending';
-    if (status === 'running') return 'active';
-    if (status === 'completed') return 'completed';
-    if (status === 'failed') return 'failed';
-    if (status === 'stopped') return 'stopped';
-    if (status === 'waiting') return 'waiting';
-    if (status === 'working' || status === 'pending') return 'pending';
-    return 'pending';
-  }
+  return 'pending';
 }
 
 
@@ -209,26 +213,26 @@ const Stepper = React.memo(({
   // Calculate progress based on completed steps
   const getStepProgress = () => {
     if (!jobStatus) return 0;
-    const taskToStep: Record<string, string> = {
-      'AUDIO_EXTRACTION': 'audioExtraction',
-      'TRANSCRIPT_GENERATION': 'transcriptGeneration',
-      'SEGMENTATION': 'segmentation',
-      'QUESTION_GENERATION': 'questionGeneration',
-      'UPLOAD_CONTENT': 'uploadContent',
-    };
-    const stepOrder = ['audioExtraction', 'transcriptGeneration', 'segmentation', 'questionGeneration', 'uploadContent'];
-    const currentTaskStep = taskToStep[jobStatus.task] || null;
-    if (!currentTaskStep) return 0;
-
-    const currentIndex = stepOrder.indexOf(currentTaskStep);
-    if (currentIndex === -1) return 0;
+    const js = jobStatus.jobStatus || {};
+    
+    let currentIndex = 0;
+    if (js.uploadContent === 'RUNNING' || js.uploadContent === 'FAILED') currentIndex = 4;
+    else if (js.questionGeneration === 'RUNNING' || js.questionGeneration === 'FAILED') currentIndex = 3;
+    else if (js.segmentation === 'RUNNING' || js.segmentation === 'FAILED') currentIndex = 2;
+    else if (js.transcriptGeneration === 'RUNNING' || js.transcriptGeneration === 'FAILED') currentIndex = 1;
+    else if (js.audioExtraction === 'RUNNING' || js.audioExtraction === 'FAILED') currentIndex = 0;
+    else if (js.uploadContent === 'COMPLETED') currentIndex = 4;
+    else if (js.questionGeneration === 'COMPLETED') currentIndex = 4;
+    else if (js.segmentation === 'COMPLETED') currentIndex = 3;
+    else if (js.transcriptGeneration === 'COMPLETED') currentIndex = 2;
+    else if (js.audioExtraction === 'COMPLETED') currentIndex = 1;
 
     // Base progress from completed steps: 4 intervals for 5 steps = 25% each
     const baseProgress = currentIndex * 25;
 
     // Add partial progress of the current step (max 25% towards next dot)
     let stepPartialProgress = 0;
-    if (jobStatus.task === 'AUDIO_EXTRACTION') {
+    if (currentIndex === 0) {
       stepPartialProgress = audioExtractionProgress;
     } else {
       stepPartialProgress = progress;
@@ -1658,24 +1662,21 @@ For ANY question where options are "True" and "False":
   // Define activeStep for Stepper
   const activeStep = React.useMemo(() => {
     if (!aiJobStatus) return null;
+    const js = aiJobStatus.jobStatus || {};
+    
+    if (js.uploadContent === 'RUNNING' || js.uploadContent === 'FAILED' || js.uploadContent === 'STOPPED') return 'uploadContent';
+    if (js.questionGeneration === 'RUNNING' || js.questionGeneration === 'FAILED' || js.questionGeneration === 'STOPPED') return 'questionGeneration';
+    if (js.segmentation === 'RUNNING' || js.segmentation === 'FAILED' || js.segmentation === 'STOPPED') return 'segmentation';
+    if (js.transcriptGeneration === 'RUNNING' || js.transcriptGeneration === 'FAILED' || js.transcriptGeneration === 'STOPPED') return 'transcriptGeneration';
+    if (js.audioExtraction === 'RUNNING' || js.audioExtraction === 'FAILED' || js.audioExtraction === 'STOPPED') return 'audioExtraction';
 
-    if (aiJobStatus.task === 'AUDIO_EXTRACTION') {
-      return 'audioExtraction';
-    }
-    if (aiJobStatus.task === 'TRANSCRIPT_GENERATION') {
-      return 'transcriptGeneration';
-    }
-    if (aiJobStatus.task === 'SEGMENTATION') {
-      return 'segmentation';
-    }
-    if (aiJobStatus.task === 'QUESTION_GENERATION') {
-      return 'questionGeneration';
-    }
-    if (aiJobStatus.task === 'UPLOAD_CONTENT') {
-      return 'uploadContent';
-    }
+    if (js.uploadContent === 'COMPLETED') return 'uploadContent';
+    if (js.questionGeneration === 'COMPLETED') return 'uploadContent';
+    if (js.segmentation === 'COMPLETED') return 'questionGeneration';
+    if (js.transcriptGeneration === 'COMPLETED') return 'segmentation';
+    if (js.audioExtraction === 'COMPLETED') return 'transcriptGeneration';
 
-    return null;
+    return 'audioExtraction';
   }, [aiJobStatus]);
 
   // AI Section Handlers
@@ -2222,16 +2223,6 @@ For ANY question where options are "True" and "False":
           ),
         }));
         toast.success("Section successfully added to course!");
-        setTimeout(() => {
-          setYoutubeUrl("");
-          setAiJobId(null);
-          setTaskRuns({
-            transcription: [],
-            segmentation: [],
-            question: [],
-            upload: [],
-          });
-        }, 1500);
       }
       await handleRefreshStatus();
     } catch (error) {
@@ -2433,6 +2424,7 @@ For ANY question where options are "True" and "False":
           const taskType = failedTask === 'transcriptGeneration' ? 'TRANSCRIPT_GENERATION'
             : failedTask === 'segmentation' ? 'SEGMENTATION'
               : failedTask === 'questionGeneration' ? 'QUESTION_GENERATION'
+                : failedTask === 'uploadContent' ? 'UPLOAD_CONTENT'
                 : failedTask.toUpperCase();
           const runs = await aiSectionAPI.getTaskStatus(aiJobId, taskType);
           status[failedTask] = runs;
@@ -2945,6 +2937,7 @@ For ANY question where options are "True" and "False":
           const taskType = failedTask === 'transcriptGeneration' ? 'TRANSCRIPT_GENERATION'
             : failedTask === 'segmentation' ? 'SEGMENTATION'
               : failedTask === 'questionGeneration' ? 'QUESTION_GENERATION'
+                : failedTask === 'uploadContent' ? 'UPLOAD_CONTENT'
                 : failedTask.toUpperCase();
           const runs = await aiSectionAPI.getTaskStatus(aiJobId, taskType);
           status[failedTask] = runs;
@@ -3655,18 +3648,18 @@ For ANY question where options are "True" and "False":
                           <div className="flex flex-col">
                             <label className="font-medium mb-1">Video Item Base Name</label>
                             <Input
-                              value="video_item"
-                              readOnly
-                              className="w-full bg-gray-100 dark:bg-[#3A3A3D] cursor-not-allowed"
+                              value={videoItemBaseName}
+                              onChange={(e) => setVideoItemBaseName(e.target.value)}
+                              className="w-full bg-white dark:bg-[#2A2A2D]"
                             />
                           </div>
 
                           <div className="flex flex-col">
                             <label className="font-medium mb-1">Quiz Item Base Name</label>
                             <Input
-                              value="quiz_item"
-                              readOnly
-                              className="w-full bg-gray-100 dark:bg-[#3A3A3D] cursor-not-allowed"
+                              value={quizItemBaseName}
+                              onChange={(e) => setQuizItemBaseName(e.target.value)}
+                              className="w-full bg-white dark:bg-[#2A2A2D]"
                             />
                           </div>
 
@@ -3674,9 +3667,10 @@ For ANY question where options are "True" and "False":
                             <label className="font-medium mb-1">Questions Per Quiz</label>
                             <Input
                               type="number"
-                              value={1}
-                              readOnly
-                              className="w-full bg-gray-100 dark:bg-[#3A3A3D] cursor-not-allowed"
+                              min="1"
+                              value={questionsPerQuiz}
+                              onChange={(e) => setQuestionsPerQuiz(parseInt(e.target.value) || 1)}
+                              className="w-full bg-white dark:bg-[#2A2A2D]"
                             />
                           </div>
                         </div>
@@ -3684,12 +3678,11 @@ For ANY question where options are "True" and "False":
                           <Button
                             onClick={async () => {
                               if (!aiJobId) return;
-                              try {
                                 // Use the simplified parameters as shown in the image
                                 const params = {
-                                  videoItemBaseName: "video_item",
-                                  quizItemBaseName: "quiz_item",
-                                  questionsPerQuiz: 1
+                                  videoItemBaseName: videoItemBaseName,
+                                  quizItemBaseName: quizItemBaseName,
+                                  questionsPerQuiz: questionsPerQuiz
                                 };
 
                                 setTaskRuns(prev => ({
@@ -3702,55 +3695,26 @@ For ANY question where options are "True" and "False":
                                   }]
                                 }));
 
-                                await aiSectionAPI.postJobTask(aiJobId, 'UPLOAD_CONTENT', params);
-
-                                setTaskRuns(prev => ({
-                                  ...prev,
-                                  upload: prev.upload.map(run =>
-                                    run.status === 'loading' ? { ...run, status: 'done' } : run
-                                  )
-                                }));
-
-                                toast.success('Section successfully uploaded to course!');
-                              } catch (error) {
-                                console.warn("Publish might have deadlocked but succeeded. Verifying status...");
                                 try {
-                                  // Wait longer (5s) for the DB to settle
-                                  await new Promise(resolve => setTimeout(resolve, 5000));
-                                  const status = await aiSectionAPI.getJobStatus(aiJobId!) as any;
-                                  const uploadStatus = status.jobStatus?.uploadContent;
-                                  const hasResults = Array.isArray(status.uploadContent) && status.uploadContent.length > 0;
-
-                                  if (uploadStatus === "COMPLETED" || hasResults) {
-                                    setTaskRuns(prev => ({
-                                      ...prev,
-                                      upload: prev.upload.map(run =>
-                                        run.status === 'loading' ? { ...run, status: 'done', result: status } : run
-                                      )
-                                    }));
-                                    toast.success('Section verified as uploaded successfully!');
-                                    setAiJobStatus(status);
-                                    return;
-                                  } else if (uploadStatus === "RUNNING" || uploadStatus === "PENDING") {
-                                    console.info("Upload detected as active on server. Proceeding with polling.");
-                                    setAiJobStatus(status);
-                                    setShouldPoll(true);
-                                    setIsLoading(true);
-                                    toast.info("Upload is processing in the background...");
-                                    return;
-                                  }
-                                } catch (innerError) {
-                                  console.error("Failed to verify status after upload error:", innerError);
+                                  // This will return quickly due to the async background processing in backend
+                                  await aiSectionAPI.postJobTask(aiJobId, 'UPLOAD_CONTENT', params);
+                                  
+                                  // Switch to polling instead of immediately marking as done
+                                  setShouldPoll(true);
+                                  setIsLoading(true);
+                                  toast.info("Upload is processing in the background...");
+                                } catch (error) {
+                                  console.error("Failed to post UPLOAD_CONTENT task:", error);
+                                  
+                                  // Fallback handling in case of true error or timeout
+                                  setTaskRuns(prev => ({
+                                    ...prev,
+                                    upload: prev.upload.map(run =>
+                                      run.status === 'loading' ? { ...run, status: 'failed' } : run
+                                    )
+                                  }));
+                                  toast.error('Upload to course failed.');
                                 }
-
-                                setTaskRuns(prev => ({
-                                  ...prev,
-                                  upload: prev.upload.map(run =>
-                                    run.status === 'loading' ? { ...run, status: 'failed' } : run
-                                  )
-                                }));
-                                toast.error('Upload to course failed.');
-                              }
                             }}
                             disabled={!acceptedRuns.question || taskRuns.upload.some(r => r.status === "loading")}
                             className="w-auto bg-[linear-gradient(90deg,#00D492_0%,#2B7FFF_100%)] text-white dark:text-[#0D0D0D] font-normal px-6 py-3 rounded-[14px] shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none btn-beautiful"

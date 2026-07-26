@@ -15,7 +15,7 @@ import {QuestionProcessor} from '../question-processing/QuestionProcessor.js';
 import {QuizRepository} from '../repositories/providers/mongodb/QuizRepository.js';
 import {ClientSession, ObjectId} from 'mongodb';
 import {aiConfig} from '#root/config/ai.js';
-import {Anthropic} from '@anthropic-ai/sdk';
+
 import {TranscriptResponse} from '#root/shared/index.js';
 import JSON5 from 'json5';
 import {ICourseRepository} from '#root/shared/database/interfaces/ICourseRepository.js';
@@ -161,10 +161,11 @@ class QuestionService extends BaseService {
     }
   }
 
-  public async create(question: BaseQuestion): Promise<string> {
-    return this._withTransaction(async session => {
+  public async create(question: BaseQuestion, externalSession?: ClientSession): Promise<string> {
+    const run = async (session: ClientSession) => {
       return await this.questionRepository.create(question, session);
-    });
+    };
+    return externalSession ? run(externalSession) : this._withTransaction(run);
   }
 
 
@@ -486,40 +487,26 @@ ${courseContextBlock}
     Return ONLY the JSON object. No additional text, comments, formatting, or explanation.
         `;
 
-        const ANTHROPIC_CRED = aiConfig.ANTHROPIC_CRED;
-        const ANTHROPIC_MODEL = aiConfig.ANTHROPIC_MODEL;
+        const GEMINI_API_KEY = aiConfig.GEMINI_API_KEY;
+        const GEMINI_MODEL = aiConfig.GEMINI_MODEL || 'gemini-2.5-flash';
 
-        if (!ANTHROPIC_CRED) {
+        if (!GEMINI_API_KEY) {
           throw new BadRequestError('Failed to find api key, try again!');
         }
 
-        const anthropic = new Anthropic({
-          apiKey: ANTHROPIC_CRED!,
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+        const response = await ai.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: `${prompt}\n\nTRANSCRIPT:\n${text}`,
+          config: {
+            temperature: 0.0,
+            responseMimeType: 'application/json'
+          }
         });
 
-        
-
-        const response = await anthropic.messages.create({
-          model: ANTHROPIC_MODEL,
-          max_tokens: 8000,
-          temperature: 0.0,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: `${prompt}\n\nTRANSCRIPT:\n${text}`,
-                },
-              ],
-            },
-          ],
-        });
-
-
-        const finalOutput =
-          response.content?.map(c => ('text' in c ? c.text : '')).join('') ??
-          '';
+        const finalOutput = response.text || '';
 
         // Remove trailing commas in objects/arrays (common AI mistake)
         let cleanedOutput = finalOutput.replace(/,\s*([}\]])/g, '$1');

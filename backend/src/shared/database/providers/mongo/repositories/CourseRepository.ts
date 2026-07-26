@@ -252,7 +252,7 @@ export class CourseRepository implements ICourseRepository {
       { session },
     );
 
-    if (deleteCourseResult.modifiedCount !== 1) {
+    if (!deleteCourseResult.acknowledged) {
       throw new InternalServerError('Failed to delete course');
     }
     return true;
@@ -887,7 +887,7 @@ export class CourseRepository implements ICourseRepository {
           },
           { session }
         );
-        if (cohortDeleteResult.modifiedCount !== version?.cohorts?.length) {
+        if (!cohortDeleteResult.acknowledged) {
           throw new InternalServerError('Failed to delete cohorts');
         }
       }
@@ -902,7 +902,7 @@ export class CourseRepository implements ICourseRepository {
         { session },
       );
 
-      if (versionDeleteResult.modifiedCount !== 1) {
+      if (!versionDeleteResult.acknowledged) {
         throw new InternalServerError('Failed to delete course version');
       }
 
@@ -939,7 +939,7 @@ export class CourseRepository implements ICourseRepository {
         { session },
       );
 
-      if (itemGroupsIds.length && itemDeletionResult.modifiedCount === 0) {
+      if (itemGroupsIds.length && !itemDeletionResult.acknowledged) {
         throw new InternalServerError('Failed to delete item groups');
       }
 

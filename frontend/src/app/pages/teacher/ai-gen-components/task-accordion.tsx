@@ -311,8 +311,9 @@ export const TaskAccordion = React.memo(({
                 setTaskRuns(prev => ({ ...prev, upload: [...prev.upload, { id: `run-${Date.now()}-${Math.random()}`, timestamp: new Date(), status: 'loading', parameters: params }] }));
                 try {
                   await aiSectionAPI.postJobTask(aiJobId, 'UPLOAD_CONTENT', params);
-                  setTaskRuns(prev => ({ ...prev, upload: prev.upload.map(run => run.status === 'loading' ? { ...run, status: 'done' } : run) }));
-                  toast.success('Section successfully uploaded to course!');
+                  setShouldPoll(true);
+                  setIsLoading(true);
+                  toast.info("Upload is processing in the background...");
                 } catch (error) {
                   setTaskRuns(prev => ({ ...prev, upload: prev.upload.map(run => run.status === 'loading' ? { ...run, status: 'failed' } : run) }));
                   toast.error('Upload to course failed.');

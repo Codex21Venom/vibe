@@ -24,7 +24,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import logo from "../../../public/img/vibe_logo_img.ico"
+const logo = "/img/vibe_logo_img.ico";
 import { STUDENT_NAV_ITEMS } from "./nav-items"
 import { StudentNotifications } from "./StudentNotifications"
 

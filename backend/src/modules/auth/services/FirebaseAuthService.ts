@@ -316,6 +316,7 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
           invite.courseVersionId.toString(),
           invite.role,
           true,
+          invite.cohortId?.toString(),
         );
         if (result && (result as any).enrollment) {
           enrolledInvites.push(
@@ -422,6 +423,7 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
           invite.courseVersionId.toString(),
           invite.role,
           true,
+          invite.cohortId?.toString(),
         );
         if (result && (result as any).enrollment) {
           enrolledInvites.push(

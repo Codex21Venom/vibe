@@ -54,20 +54,18 @@ class AudioService:
             ffmpeg_path = shutil.which("ffmpeg")
             unique_id = str(uuid.uuid4())
             
-            ydl_opts = {
+            base_ydl_opts = {
                 'format': 'bestaudio/best',
                 'outtmpl': str(temp_dir / f'{unique_id}_%(id)s.%(ext)s'),
-                'extractor_args': {
-                    'youtube': ['player_client=android,ios']
-                },
+                'socket_timeout': 30,
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'wav',
                     'preferredquality': '192',
                 }],
                 'postprocessor_args': ['-ar', '16000', '-ac', '1'],  # 16kHz, mono
-                'quiet': True,
-                'no_warnings': True,
+                'quiet': False,
+                'no_warnings': False,
             }
 
             if not ffmpeg_path:
@@ -77,15 +75,37 @@ class AudioService:
                     r"Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.2-full_build\bin"
                 )
                 if os.path.exists(fallback_path):
-                    ydl_opts['ffmpeg_location'] = fallback_path
+                    base_ydl_opts['ffmpeg_location'] = fallback_path
 
+            browsers = [None, 'chrome', 'edge', 'firefox', 'brave']
+            last_error = None
             
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(video_url, download=True)
-                # The postprocessor will create a .wav file
-                filename = ydl.prepare_filename(info)
-                # Remove the original extension and add .wav
-                audio_filename = os.path.splitext(filename)[0] + '.wav'
-                return audio_filename
+            for browser in browsers:
+                ydl_opts = base_ydl_opts.copy()
+                if browser:
+                    ydl_opts['cookiesfrombrowser'] = (browser,)
+                    print(f"yt-dlp: Attempting download using {browser} cookies...")
+                else:
+                    print(f"yt-dlp: Attempting download without cookies...")
+                    
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(video_url, download=True)
+                        # The postprocessor will create a .wav file
+                        filename = ydl.prepare_filename(info)
+                        # Remove the original extension and add .wav
+                        audio_filename = os.path.splitext(filename)[0] + '.wav'
+                        return audio_filename
+                except Exception as e:
+                    last_error = e
+                    print(f"yt-dlp: Failed with {browser or 'no cookies'}. Error: {str(e)}")
+                    continue
+            
+            # If we get here, all download attempts failed
+            err_str = str(last_error)
+            if "cookie database" in err_str or "locked" in err_str:
+                raise Exception("Failed to download audio. Your browser (Edge/Brave/Firefox) is currently open and locking its cookies. Please close your browser completely and try again, or use a different video that does not require age verification.")
+            else:
+                raise Exception(f"Failed to download audio. Please try another video. Detailed error: {err_str}")
         
         return await loop.run_in_executor(None, download)

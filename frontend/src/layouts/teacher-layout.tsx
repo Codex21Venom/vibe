@@ -185,7 +185,7 @@ const { mutate: markAllSystemRead } = useMarkAllSystemNotificationsAsRead();
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="max-w-full overflow-hidden h-screen flex flex-col">
+      <SidebarInset className="max-w-full overflow-hidden h-screen flex flex-col min-w-0">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear sticky top-0 z-50 bg-background">
           <div className="flex w-full items-center justify-between px-4">
             <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ const { mutate: markAllSystemRead } = useMarkAllSystemNotificationsAsRead();
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col md:p-6 p-4 max-w-full overflow-auto">
+        <div className="flex flex-1 flex-col md:p-6 p-4 max-w-full min-w-0 overflow-auto">
           <Outlet />
         </div>
       </SidebarInset >

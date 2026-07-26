@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import {ObjectId} from 'mongodb';
+import {ObjectId, ClientSession} from 'mongodb';
 import {
   NotFoundError,
   InternalServerError,
@@ -59,8 +59,12 @@ class QuizService extends BaseService {
     super(database);
   }
 
-  addQuestionBank(quizId: string, questionBankRef: IQuestionBankRef) {
-    return this._withTransaction(async session => {
+  async addQuestionBank(
+    quizId: string,
+    questionBankRef: IQuestionBankRef,
+    externalSession?: ClientSession
+  ) {
+    const doWork = async (session: ClientSession) => {
       const questionBank = await this.questionBankRepo.getById(
         questionBankRef.bankId.toString(),
         session,
@@ -97,7 +101,13 @@ class QuizService extends BaseService {
         throw new InternalServerError('Failed to add question bank to quiz.');
       }
       return result;
-    });
+    };
+
+    if (externalSession) {
+      return await doWork(externalSession);
+    } else {
+      return this._withTransaction(doWork);
+    }
   }
   removeQuestionBank(quizId: string, questionBankId: string) {
     return this._withTransaction(async session => {
