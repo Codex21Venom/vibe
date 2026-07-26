@@ -320,8 +320,7 @@ export default function CoursePage() {
 
   const shouldFetchItems =
     !!activeSectionInfo?.moduleId &&
-    !!activeSectionInfo?.sectionId &&
-    !hasSectionItems;
+    !!activeSectionInfo?.sectionId;
 
   const {
     data: currentSectionItems,
@@ -978,54 +977,45 @@ export default function CoursePage() {
       };
     }
 
-    // Try to get first item of next section in current module
-    if (currentSectionIndex < sections.length - 1) {
-      const nextSection = sections[currentSectionIndex + 1];
-      const nextSectionItems = sectionItems[nextSection.sectionId];
-      if (nextSectionItems && nextSectionItems.length > 0) {
-        return {
-          moduleId: selectedModuleId,
-          sectionId: nextSection.sectionId,
-          itemId: nextSectionItems[0]._id,
-          type: nextSectionItems[0].type?.toLowerCase() ?? null,
-        };
-      } else {
-        // Next section exists but items not loaded - return section info to trigger loading
-        return {
-          moduleId: selectedModuleId,
-          sectionId: nextSection.sectionId,
-          itemId: null, // Will be set after items are loaded
-          type: null,
-          needsLoading: true
-        };
-      }
-    }
+    // Iterate through remaining sections and modules to find the next available item
+    let mIdx = currentModuleIndex;
+    let sIdx = currentSectionIndex + 1;
 
-    // Try to get first item of first section in next module
-    if (currentModuleIndex < modules.length - 1) {
-      const nextModule = modules[currentModuleIndex + 1];
-      const nextModuleSections = nextModule.sections || [];
-      if (nextModuleSections.length > 0) {
-        const firstNextSection = nextModuleSections[0];
-        const nextModuleItems = sectionItems[firstNextSection.sectionId];
-        if (nextModuleItems && nextModuleItems.length > 0) {
+    while (mIdx < modules.length) {
+      const m = modules[mIdx];
+      const sList = m.sections || [];
+
+      while (sIdx < sList.length) {
+        const s = sList[sIdx];
+        const sItems = sectionItems[s.sectionId];
+
+        if (!sItems) {
+          // Items not loaded yet, need to fetch
           return {
-            moduleId: nextModule.moduleId,
-            sectionId: firstNextSection.sectionId,
-            itemId: nextModuleItems[0]._id,
-            type: nextModuleItems[0].type?.toLowerCase() ?? null,
-          };
-        } else {
-          // Next section exists but items not loaded - return section info to trigger loading
-          return {
-            moduleId: nextModule.moduleId,
-            sectionId: firstNextSection.sectionId,
-            itemId: null, // Will be set after items are loaded
+            moduleId: m.moduleId,
+            sectionId: s.sectionId,
+            itemId: null,
             type: null,
             needsLoading: true
           };
         }
+
+        if (sItems.length > 0) {
+          return {
+            moduleId: m.moduleId,
+            sectionId: s.sectionId,
+            itemId: sItems[0]._id,
+            type: sItems[0].type?.toLowerCase() ?? null,
+          };
+        }
+
+        // If sItems is empty array, it means this section has no items. Continue to next section.
+        sIdx++;
       }
+      
+      // Move to next module
+      mIdx++;
+      sIdx = 0;
     }
 
     // No next item found

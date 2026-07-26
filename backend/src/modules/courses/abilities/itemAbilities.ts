@@ -49,128 +49,125 @@ export async function setupItemAbilities(
   // Use Promise.all to handle async operations properly
   await Promise.all(
     user.enrollments.map(async (enrollment: AuthenticatedUserEnrollements) => {
-      const versionBounded = { versionId: enrollment.versionId };
+      try {
+        const versionBounded = { versionId: enrollment.versionId };
 
-      switch (enrollment.role) {
-        case 'STUDENT':
-          can(ItemActions.ViewAll, 'Item', versionBounded);
+        switch (enrollment.role) {
+          case 'STUDENT':
+            can(ItemActions.ViewAll, 'Item', versionBounded);
 
+            // true if linearProgressionEnabled field is not available
+            const linearProgressionEnabled = await courseSettingService.isLinearProgressionEnabled(
+              enrollment.courseId,
+              enrollment.versionId,
+            );
 
+            let progress: any;
+            try {
+              progress = await progressService.getUserProgress(
+                user.userId,
+                enrollment.courseId,
+                enrollment.versionId,
+              );
+            } catch (error) {
+              progress = null;
+            }
 
-          // true if linearProgressionEnabled field is not available
-          const linearProgressionEnabled = await courseSettingService.isLinearProgressionEnabled(
-            enrollment.courseId,
-            enrollment.versionId,
-          );
+            const itemBounded: {
+              courseId: string;
+              versionId: string;
+              itemId?: any;
+            } = {
+              courseId: enrollment.courseId,
+              versionId: enrollment.versionId,
+            };
 
-          let progress: any;
-          try {
-            progress = await progressService.getUserProgress(
+            if (!progress?.currentItem) {
+              // User has not started the course yet
+              // Allow only ViewAll (or nothing, based on your rules)
+              const firstItem = await progressService.getFirstItem(
+                enrollment.versionId,
+              );
+
+              if (!progress) {
+                const itemBounded = {
+                  courseId: enrollment.courseId,
+                  versionId: enrollment.versionId,
+                };
+                can(ItemActions.View, 'Item', itemBounded);
+                break;
+              }
+            }
+
+            // return all the itemId having watchtime doc
+            const completedItems = await progressService.getCompletedItems(
               user.userId,
               enrollment.courseId,
               enrollment.versionId,
             );
-          } catch (error) {
-            progress = null;
-          }
 
-          // return all the itemId having watchtime doc
-          const completedItems = await progressService.getCompletedItems(
-            user.userId,
-            enrollment.courseId,
-            enrollment.versionId,
-          );
+            // Convert all completed items to strings for consistency
+            const completedItemsStr = completedItems.map(id => id.toString());
 
-          // Convert all completed items to strings for consistency
-          const completedItemsStr = completedItems.map(id => id.toString());
+            const allowedItemIds = [...completedItemsStr];
+            if (progress?.currentItem) {
+              const currentItemId = progress.currentItem.toString();
 
-          const itemBounded: {
-            courseId: string;
-            versionId: string;
-            itemId?: any;
-          } = {
-            courseId: enrollment.courseId,
-            versionId: enrollment.versionId,
-          };
+              // Always add current item to allowed list
+              if (!allowedItemIds.includes(currentItemId)) {
+                allowedItemIds.push(currentItemId);
+              }
 
-          if (!progress.currentItem) {
-            // User has not started the course yet
-            // Allow only ViewAll (or nothing, based on your rules)
-            const firstItem = await progressService.getFirstItem(
-              enrollment.versionId,
-            );
-            // const firstItem = await this.itemService.getFirstItem(enrollment.versionId);
-            can(ItemActions.View, 'Item', {
-              courseId: enrollment.courseId,
-              versionId: enrollment.versionId,
-              ItemId: firstItem?.itemId,
-            });
-            return;
-          }
+              // check if the user remaining attempts of a quiz is over
+              const quizMetrics = await progressService.getUserMetricsForQuiz(
+                user.userId,
+                currentItemId,
+                progress?.cohortId?.toString?.(),
+              );
 
-          if (!progress) {
-            const itemBounded = {
-              courseId: enrollment.courseId,
-              versionId: enrollment.versionId,
-            };
-            can(ItemActions.View, 'Item', itemBounded);
-            break;
-          }
+              if (quizMetrics && quizMetrics.remainingAttempts == 0) {
+                const { nextItemId } = await progressService.determineNextAllowedItem(
+                  currentItemId,
+                  quizMetrics,
+                  enrollment,
+                );
 
-          const allowedItemIds = [...completedItemsStr];
-          const currentItemId = progress.currentItem.toString();
-
-          // Always add current item to allowed list
-          if (!allowedItemIds.includes(currentItemId)) {
-            allowedItemIds.push(currentItemId);
-          }
-
-          // check if the user remaining attempts of a quiz is over
-          const quizMetrics = await progressService.getUserMetricsForQuiz(
-            user.userId,
-            currentItemId,
-            progress?.cohortId?.toString?.(),
-          );
-
-          if (quizMetrics && quizMetrics.remainingAttempts == 0) {
-            const { nextItemId } = await progressService.determineNextAllowedItem(
-              currentItemId,
-              quizMetrics,
-              enrollment,
-            );
-
-            if (nextItemId) {
-              const nextItemIdStr = nextItemId.toString();
-              if (!allowedItemIds.includes(nextItemIdStr)) {
-                allowedItemIds.push(nextItemIdStr);
+                if (nextItemId) {
+                  const nextItemIdStr = nextItemId.toString();
+                  if (!allowedItemIds.includes(nextItemIdStr)) {
+                    allowedItemIds.push(nextItemIdStr);
+                  }
+                }
               }
             }
-          }
 
-          if (linearProgressionEnabled) {
-            console.log(
-              '[itemAbilities] Linear progression enabled - restricting items for student',
-              allowedItemIds,
-            );
-            itemBounded.itemId = { $in: allowedItemIds };
-          } else {
-          }
+            if (linearProgressionEnabled) {
+              console.log(
+                '[itemAbilities] Linear progression enabled - restricting items for student',
+                allowedItemIds,
+              );
+              itemBounded.itemId = { $in: allowedItemIds };
+            } else {
+            }
 
-          can(ItemActions.View, 'Item', itemBounded);
-          break;
-        case 'INSTRUCTOR':
-          can(ItemActions.Create, 'Item', versionBounded);
-          can(ItemActions.Modify, 'Item', versionBounded);
-          can(ItemActions.Delete, 'Item', versionBounded);
-          can(ItemActions.View, 'Item', versionBounded);
-          can(ItemActions.ViewAll, 'Item', versionBounded);
-          break;
-        case 'MANAGER':
-          can('manage', 'Item', versionBounded);
-          break;
-        case 'TA':
-          can(ItemActions.ViewAll, 'Item', versionBounded);
-          break;
+            can(ItemActions.View, 'Item', itemBounded);
+            break;
+          case 'INSTRUCTOR':
+            can(ItemActions.Create, 'Item', versionBounded);
+            can(ItemActions.Modify, 'Item', versionBounded);
+            can(ItemActions.Delete, 'Item', versionBounded);
+            can(ItemActions.View, 'Item', versionBounded);
+            can(ItemActions.ViewAll, 'Item', versionBounded);
+            break;
+          case 'MANAGER':
+            can('manage', 'Item', versionBounded);
+            break;
+          case 'TA':
+            can(ItemActions.ViewAll, 'Item', versionBounded);
+            break;
+        }
+      } catch (error) {
+        console.error(`Failed to setup abilities for course ${enrollment.courseId}:`, error);
       }
     }),
   );

@@ -288,7 +288,7 @@ export function CourseDrawer({
                                         <Skeleton className="h-4 w-full rounded" />
                                         <Skeleton className="h-4 w-4/5 rounded" />
                                       </div>
-                                    ) : sectionItems[sectionId] ? (
+                                    ) : sectionItems[sectionId] && sectionItems[sectionId].length > 0 ? (
                                       (shouldRandomize
                                         ? sectionItems[sectionId]
                                         : sortItemsByOrder(sectionItems[sectionId])

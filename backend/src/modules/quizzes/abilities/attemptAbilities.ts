@@ -65,12 +65,6 @@ export async function setupAttemptAbilities(
             progress = null;
           }
 
-          const completedItems = await progressService.getCompletedItems(
-            user.userId,
-            enrollment.courseId,
-            enrollment.versionId,
-          );
-
           if (!progress) {
             const basicAttemptBounded = {
               courseId: enrollment.courseId,
@@ -81,6 +75,12 @@ export async function setupAttemptAbilities(
             can(AttemptActions.Submit, 'Attempt', basicAttemptBounded);
             break;
           }
+
+          const completedItems = await progressService.getCompletedItems(
+            user.userId,
+            enrollment.courseId,
+            enrollment.versionId,
+          );
           // fetch courseVersion (to get linearProgression flag)
           const courseSettings = await courseSettingService.readCourseSettings(
             enrollment.courseId,
