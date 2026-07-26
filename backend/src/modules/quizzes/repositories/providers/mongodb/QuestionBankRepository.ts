@@ -118,6 +118,26 @@ class QuestionBankRepository {
     };
   }
 
+  async getByCourseId(
+    courseId: string,
+    session?: ClientSession,
+  ): Promise<IQuestionBank[]> {
+    await this.init();
+    const results = await this.questionBankCollection
+      .find(
+        { courseId: new ObjectId(courseId), isDeleted: { $ne: true } },
+        { session }
+      )
+      .toArray();
+
+    return results.map(bank => ({
+      ...bank,
+      questions: bank.questions.map(q => q.toString()),
+      courseId: bank.courseId?.toString(),
+      courseVersionId: bank.courseVersionId?.toString(),
+    }));
+  }
+
   async removeQuestionFromAllBanks(
     questionId: string,
     session?: ClientSession,

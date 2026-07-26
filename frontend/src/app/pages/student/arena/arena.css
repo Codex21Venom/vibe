@@ -1,0 +1,150 @@
+/* Knowledge Clash Arena Custom CSS - Sci-Fi / Educational Lab Theme */
+
+.arena-container {
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+  background: radial-gradient(circle at top right, rgba(160, 124, 254, 0.1), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(255, 190, 123, 0.05), transparent 40%);
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.arena-header {
+  margin-bottom: 3rem;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+.arena-content {
+  position: relative;
+  z-index: 10;
+  max-w-7xl: mx-auto;
+}
+
+.arena-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #a07cfe;
+  animation: pulse 2s infinite;
+}
+
+.arena-course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.arena-course-card {
+  position: relative;
+  background: rgba(23, 23, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.arena-course-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(160, 124, 254, 0.5);
+  box-shadow: 0 10px 30px -10px rgba(160, 124, 254, 0.3);
+}
+
+.arena-course-card.selected {
+  border-color: #a07cfe;
+  background: rgba(160, 124, 254, 0.1);
+  box-shadow: 0 0 20px rgba(160, 124, 254, 0.2), inset 0 0 10px rgba(160, 124, 254, 0.1);
+}
+
+.course-card-content {
+  position: relative;
+  z-index: 2;
+}
+
+.course-card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(254, 143, 181, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.arena-course-card:hover .course-card-glow {
+  opacity: 1;
+}
+
+.arena-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.arena-btn-primary {
+  background: linear-gradient(135deg, #a07cfe 0%, #fe8fb5 100%);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(160, 124, 254, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.arena-btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(160, 124, 254, 0.6);
+}
+
+.arena-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: 0.5s;
+}
+
+.arena-btn-primary:hover::after {
+  left: 100%;
+}
+
+.arena-btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(5px);
+}
+
+.arena-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}

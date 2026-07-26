@@ -88,3 +88,5 @@ app.listen(appConfig.port, () => {
   printStartupSummary();
   startCron();
 });
+
+console.log("Backend restarted to load new Arena modules.");

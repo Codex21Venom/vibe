@@ -70,6 +70,7 @@ import StudentSubmissions from '@/app/pages/student/hp-system/submissions'
 import StudentMyLedgerPage from '@/app/pages/student/hp-system/student-ledger'
 import StudentActivityDetail from '@/app/pages/student/hp-system/activity-detail'
 import NotificationsPage from '@/app/pages/shared/NotificationsPage'
+import ArenaDashboard from '@/app/pages/student/arena/ArenaDashboard'
 
 // Root route with error and notFound handling
 const rootRoute = new RootRoute({
@@ -486,6 +487,13 @@ const studentDashboardRoute = new Route({
   component: StudentDashboard,
 });
 
+// Student arena route
+const studentArenaRoute = new Route({
+  getParentRoute: () => studentLayoutRoute,
+  path: '/arena',
+  component: ArenaDashboard,
+});
+
 // Student courses route
 const studentCoursesRoute = new Route({
   getParentRoute: () => studentLayoutRoute,
@@ -711,6 +719,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   studentLayoutRoute.addChildren([
     studentDashboardRoute,
+    studentArenaRoute,
     studentCoursesRoute,
     studentProfileRoute,
     studentCourseInviteRegistration,
