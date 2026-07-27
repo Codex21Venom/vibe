@@ -1,0 +1,842 @@
+[
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\config\\screening.ts",
+    "LineNumber": 17,
+    "Line": "   * per-segment transcripts exist, the only available context is the weak"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\config\\screening.ts",
+    "LineNumber": 36,
+    "Line": "  /** Transcript characters fed to the on-topic check (keeps cost bounded). */"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\anomalies\\services\\CloudStorageService.ts",
+    "LineNumber": 94,
+    "Line": "  async uploadTranscript("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\anomalies\\services\\CloudStorageService.ts",
+    "LineNumber": 95,
+    "Line": "    transcript: object,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\anomalies\\services\\CloudStorageService.ts",
+    "LineNumber": 99,
+    "Line": "    const file = bucket.file(`transcripts/${jobId}.json`);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\anomalies\\services\\CloudStorageService.ts",
+    "LineNumber": 102,
+    "Line": "      const jsonString = JSON.stringify(transcript, null, 2);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\anomalies\\services\\CloudStorageService.ts",
+    "LineNumber": 112,
+    "Line": "      throw new InternalServerError(`Failed to upload transcript: ${error.message}`);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 12,
+    "Line": "  TRANSCRIPT_GENERATION = 'TRANSCRIPT_GENERATION',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 33,
+    "Line": "export interface TranscriptParameters {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 90,
+    "Line": "\tnewParamers?: TranscriptParameters;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 97,
+    "Line": "\ttranscriptFileUrl?: string;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 117,
+    "Line": "\ttranscriptGeneration: TaskStatus;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 124,
+    "Line": "\t\tthis.transcriptGeneration = TaskStatus.PENDING;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 134,
+    "Line": "\ttranscriptParameters?: TranscriptParameters;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 144,
+    "Line": "\ttranscriptProvided?: boolean;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 153,
+    "Line": "\ttranscriptGeneration?: trascriptGenerationData[]"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\transformers\\GenAI.ts",
+    "LineNumber": 163,
+    "Line": "\tparameters?: TranscriptParameters | SegmentationParameters | QuestionGenerationParameters | UploadParameters;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 20,
+    "Line": "@JSONSchema({ title: 'TranscriptParameters' })"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 21,
+    "Line": "class TranscriptParameters {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 236,
+    "Line": "    example: \"Focus on conceptual understanding\\n- Test comprehension of key ideas, principles, and relationships discussed in the content\\n- Avoid questions that require memorizing exact numerical values, dates, or statistics mentioned in the content\\n- The answer of questions should be present within the content, but not directly quoted\\n- make all the options roughly the same length\\n- Set isParameterized to false unless the question uses variables\\n- Do not mention the word 'transcript' for giving references, use the word 'video' instead\","
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 467,
+    "Line": "class Transcript {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 469,
+    "Line": "    description: 'Chunks of the transcript',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 532,
+    "Line": "    title: 'Transcript',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 533,
+    "Line": "    description: 'Transcript of the video',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 540,
+    "Line": "  @Type(() => Transcript)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 541,
+    "Line": "  transcript?: Transcript;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 544,
+    "Line": "    title: 'Transcript Parameters',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 545,
+    "Line": "    description: 'Parameters for generating transcripts',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 561,
+    "Line": "  @Type(() => TranscriptParameters)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 562,
+    "Line": "  transcriptParameters?: TranscriptParameters;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 587,
+    "Line": "    description: 'Parameters for generating questions from the transcript',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 643,
+    "Line": "    example: 'TRANSCRIPT_GENERATION',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 656,
+    "Line": "    example: 'TRANSCRIPT_GENERATION',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 667,
+    "Line": "        $ref: '#/components/schemas/TranscriptParameters',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 687,
+    "Line": "      case TaskType.TRANSCRIPT_GENERATION:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 688,
+    "Line": "        return TranscriptParameters;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 699,
+    "Line": "  parameters?: Partial<TranscriptParameters | SegmentationParameters | QuestionGenerationParameters | PartialUploadParameters>;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 717,
+    "Line": "    example: 'TRANSCRIPT_GENERATION',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 728,
+    "Line": "        $ref: '#/components/schemas/TranscriptParameters',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 748,
+    "Line": "      case TaskType.TRANSCRIPT_GENERATION:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 749,
+    "Line": "        return TranscriptParameters;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 760,
+    "Line": "  parameters?: Partial<TranscriptParameters | SegmentationParameters | QuestionGenerationParameters | PartialUploadParameters>;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 778,
+    "Line": "    example: 'TRANSCRIPT_GENERATION',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 888,
+    "Line": "    example: 'TRANSCRIPT_GENERATION',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 961,
+    "Line": "class EditTranscript {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 963,
+    "Line": "    title: 'Transcript',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 964,
+    "Line": "    description: 'The transcript to edit',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 968,
+    "Line": "  transcript: JSON;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 972,
+    "Line": "    description: 'Index of the transcript to edit',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 1025,
+    "Line": "  EditTranscript,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\classes\\validators\\GenAIValidators.ts",
+    "LineNumber": 1042,
+    "Line": "  EditTranscript,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 30,
+    "Line": "  EditTranscript,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 366,
+    "Line": "    summary: 'Edit transcript',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 367,
+    "Line": "    description: `Edits the transcript of a job.<br/>"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 370,
+    "Line": "  @Patch(\"/jobs/:id/edit/transcript\")"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 385,
+    "Line": "  async editTranscript(@Params() params: GenAIIdParams, @Body() body: EditTranscript, @Ability(getGenAIAbility) {ability}) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 387,
+    "Line": "    const { transcript, index } = body;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 392,
+    "Line": "      //throw new ForbiddenError('You do not have permission to edit transcript of this job');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\controllers\\GenAIController.ts",
+    "LineNumber": 395,
+    "Line": "    await this.genAIService.editTranscript(id, transcript, index);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 34,
+    "Line": "    transcriptProvided?: boolean,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 42,
+    "Line": "      jobStatus.transcriptGeneration = TaskStatus.WAITING;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 44,
+    "Line": "    if (transcriptProvided) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 46,
+    "Line": "      jobStatus.transcriptGeneration = TaskStatus.COMPLETED;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 48,
+    "Line": "      delete jobDataToSave.transcript;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 54,
+    "Line": "        transcriptProvided: transcriptProvided,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 122,
+    "Line": "  async createTaskDataWithTranscript("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 136,
+    "Line": "        transcriptGeneration: ["
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\repositories\\providers\\mongodb\\GenAIRepository.ts",
+    "LineNumber": 149,
+    "Line": "    //     transcriptGeneration: ["
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 27,
+    "Line": "  TranscriptParameters,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 126,
+    "Line": "        jobData.transcript ? true : false,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 147,
+    "Line": "      } else if (jobData.transcript) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 148,
+    "Line": "        const fileName = await this.cloudStorageService.uploadTranscript("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 149,
+    "Line": "          jobData.transcript,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 152,
+    "Line": "        await this.genAIRepository.createTaskDataWithTranscript("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 178,
+    "Line": "      } else if (job.jobStatus.transcriptGeneration === TaskStatus.RUNNING) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 179,
+    "Line": "        runningTask = TaskType.TRANSCRIPT_GENERATION;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 216,
+    "Line": "      | TranscriptParameters"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 293,
+    "Line": "      | TranscriptParameters"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 379,
+    "Line": "      } else if (job.jobStatus.transcriptGeneration === TaskStatus.COMPLETED) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 382,
+    "Line": "        job.jobStatus.transcriptGeneration = TaskStatus.WAITING;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 436,
+    "Line": "  //       case TaskType.TRANSCRIPT_GENERATION:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 437,
+    "Line": "  //         return taskData.transcriptGeneration;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 475,
+    "Line": "        case TaskType.TRANSCRIPT_GENERATION:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 476,
+    "Line": "          result = taskData.transcriptGeneration;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 518,
+    "Line": "        const lastTranscript = task.transcriptGeneration?.[task.transcriptGeneration.length - 1];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 523,
+    "Line": "            transcriptFileUrl: lastTranscript?.fileUrl,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 619,
+    "Line": "  async editTranscript("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 621,
+    "Line": "    transcript: JSON,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 632,
+    "Line": "      const fileName = task.transcriptGeneration[index].fileName;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 645,
+    "Line": "      const data = JSON.stringify(transcript);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 650,
+    "Line": "      task.transcriptGeneration[index].fileName = newFileName;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 651,
+    "Line": "      task.transcriptGeneration["
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 725,
+    "Line": "          case TaskType.TRANSCRIPT_GENERATION:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 726,
+    "Line": "            job.jobStatus.transcriptGeneration = jobData.status;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 727,
+    "Line": "            if (taskData.transcriptGeneration) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 728,
+    "Line": "              taskData.transcriptGeneration.push({"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 732,
+    "Line": "              taskData.transcriptGeneration = ["
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 763,
+    "Line": "          case TaskType.TRANSCRIPT_GENERATION:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 764,
+    "Line": "            job.jobStatus.transcriptGeneration = jobData.status;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 817,
+    "Line": "          job.jobStatus.transcriptGeneration === TaskStatus.PENDING ||"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 818,
+    "Line": "          job.jobStatus.transcriptGeneration === TaskStatus.RUNNING"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 821,
+    "Line": "        jobState.currentTask = TaskType.TRANSCRIPT_GENERATION;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 822,
+    "Line": "        if (job.jobStatus.transcriptGeneration === TaskStatus.WAITING)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 824,
+    "Line": "        jobState.taskStatus = job.jobStatus.transcriptGeneration;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 825,
+    "Line": "        jobState.parameters = job.transcriptParameters;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 840,
+    "Line": "          jobState.currentTask = TaskType.TRANSCRIPT_GENERATION;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 844,
+    "Line": "          task.transcriptGeneration["
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 845,
+    "Line": "            usePrevious ? usePrevious : task.transcriptGeneration.length - 1"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 862,
+    "Line": "          ]?.transcriptFileUrl;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\genAI\\services\\GenAIService.ts",
+    "LineNumber": 870,
+    "Line": "        job.jobStatus.transcriptGeneration === TaskStatus.COMPLETED &&"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 43,
+    "Line": "  TranscriptResponse,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 428,
+    "Line": "  ): Promise<{success: boolean; response: TranscriptResponse[]}> {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 472,
+    "Line": "    const chunkTranscriptByTimestamps = ("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 473,
+    "Line": "      transcript: string,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 478,
+    "Line": "      const segments = transcript.match(segmentRegex) || [];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 515,
+    "Line": "    const chunks = chunkTranscriptByTimestamps(text);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 519,
+    "Line": "    let allSegments: TranscriptResponse[] = [];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 19,
+    "Line": "import {TranscriptResponse} from '#root/shared/index.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 109,
+    "Line": "    generate them ONLY from the transcript content below — do not invent"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 110,
+    "Line": "    facts about the course that aren't in the transcript."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 373,
+    "Line": "  ): Promise<TranscriptResponse[]> {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 386,
+    "Line": "    You are an expert MERN stack educator and question-generation specialist. You will generate high-quality Multiple Choice Questions (MCQs) based ONLY on the provided video transcript text."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 466,
+    "Line": "    - The transcript contains timestamps in this format:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 481,
+    "Line": "    If no transcript text is provided, respond ONLY with:"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 482,
+    "Line": "    \"Please provide the transcript or upload a .txt file.\""
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 502,
+    "Line": "          contents: `${prompt}\\n\\nTRANSCRIPT:\\n${text}`,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 524,
+    "Line": "            'AI returned invalid JSON. Try reducing transcript size or split into smaller chunks.',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\repositories\\providers\\mongodb\\StudentQuestionRepository.ts",
+    "LineNumber": 23,
+    "Line": " * Precomputed lesson context for a video segment — the transcript text sliced"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\repositories\\providers\\mongodb\\StudentQuestionRepository.ts",
+    "LineNumber": 24,
+    "Line": " * to that segment's time window. Populated by the transcript backfill script and"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\repositories\\providers\\mongodb\\StudentQuestionRepository.ts",
+    "LineNumber": 26,
+    "Line": " * fetch/parse a whole-video transcript file synchronously."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\repositories\\providers\\mongodb\\StudentQuestionRepository.ts",
+    "LineNumber": 33,
+    "Line": "  source: 'TRANSCRIPT';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\repositories\\providers\\mongodb\\StudentQuestionRepository.ts",
+    "LineNumber": 83,
+    "Line": "  /** Read the precomputed transcript context for a segment, or null if none. */"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\repositories\\providers\\mongodb\\StudentQuestionRepository.ts",
+    "LineNumber": 91,
+    "Line": "  /** Upsert precomputed segment context (used by the transcript backfill). */"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\repositories\\providers\\mongodb\\StudentQuestionRepository.ts",
+    "LineNumber": 104,
+    "Line": "          source: 'TRANSCRIPT',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 15,
+    "Line": " *   1. Precomputed transcript — a `segmentContext` row populated by the"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 16,
+    "Line": " *      transcript backfill (the real lesson content, best fidelity)."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 19,
+    "Line": " *      lesson covers. Requires no transcript infra, so it works today."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 54,
+    "Line": "    // Layer 1: precomputed transcript (best fidelity)."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 55,
+    "Line": "    const transcript = await this.repository"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 59,
+    "Line": "    if (transcript) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 60,
+    "Line": "      parts.push('Lesson transcript:');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\context\\SegmentContextProvider.ts",
+    "LineNumber": 61,
+    "Line": "      parts.push(transcript);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\screening\\prompts.ts",
+    "LineNumber": 96,
+    "Line": "- onTopic=true: the question tests something the lesson covers or directly builds on — even if it probes an edge case, uses different vocabulary than the transcript, or is harder than the lesson."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\screening\\ScreeningService.ts",
+    "LineNumber": 37,
+    "Line": "  /** Lesson context (title + transcript excerpt). Empty → context check skipped. */"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\screening\\ScreeningService.ts",
+    "LineNumber": 64,
+    "Line": " *   3. on-topic                   (LLM, vs the lesson transcript)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\screening\\ScreeningService.ts",
+    "LineNumber": 141,
+    "Line": "      // ── 3. on-topic (LLM, vs transcript) ──────────────────────────────────"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\StudentQuestionService.ts",
+    "LineNumber": 363,
+    "Line": "    // precomputed transcript when available, else the graded stems we just"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\services\\StudentQuestionService.ts",
+    "LineNumber": 367,
+    "Line": "    // transcripts exist — the graded-stem proxy is too weak a relevance signal"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\screening.dataset.ts",
+    "LineNumber": 59,
+    "Line": "  // ── off-topic (context vs transcript) ──"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 6,
+    "Line": " * on-topic + answer-correctness checks. Only `repository` (Layer 1 transcript)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 14,
+    "Line": "  transcript?: string | null;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 18,
+    "Line": "    getSegmentContextText: async () => opts.transcript ?? null,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 27,
+    "Line": "  it('uses the precomputed transcript (Layer 1) when present', async () => {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 29,
+    "Line": "      transcript: 'The mitochondria is the powerhouse of the cell.',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 37,
+    "Line": "    expect(ctx).toContain('Lesson transcript:');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 39,
+    "Line": "    // Transcript wins over the proxy — graded stems are not appended."
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 43,
+    "Line": "  it('falls back to the graded-stem proxy (Layer 2) when no transcript', async () => {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 45,
+    "Line": "      transcript: null,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 55,
+    "Line": "    expect(ctx).not.toContain('Lesson transcript:');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 58,
+    "Line": "  it('returns null when there is no transcript, no stems, and no item', async () => {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\studentQuestions\\tests\\SegmentContextProvider.test.ts",
+    "LineNumber": 59,
+    "Line": "    const provider = makeProvider({transcript: null, item: null});"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\interfaces\\models.ts",
+    "LineNumber": 924,
+    "Line": "export interface TranscriptResponse {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\interfaces\\models.ts",
+    "LineNumber": 927,
+    "Line": "  questions: TranscriptQuestion[];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\interfaces\\models.ts",
+    "LineNumber": 930,
+    "Line": "export interface TranscriptQuestion {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\interfaces\\models.ts",
+    "LineNumber": 934,
+    "Line": "  options: TranscriptOptions;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\interfaces\\models.ts",
+    "LineNumber": 935,
+    "Line": "  explanations: TranscriptExplanations;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\interfaces\\models.ts",
+    "LineNumber": 939,
+    "Line": "export interface TranscriptOptions {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\interfaces\\models.ts",
+    "LineNumber": 946,
+    "Line": "export interface TranscriptExplanations {"
+  }
+]

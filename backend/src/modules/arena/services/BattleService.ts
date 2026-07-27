@@ -7,6 +7,11 @@ import { GLOBAL_TYPES } from '#root/types.js';
 import { QUIZZES_TYPES } from '../../quizzes/types.js';
 import { QuestionBankRepository } from '../../quizzes/repositories/providers/mongodb/QuestionBankRepository.js';
 import { QuestionRepository } from '../../quizzes/repositories/providers/mongodb/QuestionRepository.js';
+import { USERS_TYPES } from '#root/modules/users/types.js';
+import { STUDENT_QUESTION_TYPES } from '#root/modules/studentQuestions/types.js';
+import { ProgressRepository } from '#shared/database/providers/mongo/repositories/ProgressRepository.js';
+import { EnrollmentRepository } from '#shared/database/providers/mongo/repositories/EnrollmentRepository.js';
+import { SegmentContextProvider } from '#root/modules/studentQuestions/services/context/SegmentContextProvider.js';
 
 @injectable()
 export class BattleService {
@@ -14,7 +19,10 @@ export class BattleService {
     @inject('ArenaRepository') private readonly arenaRepo: ArenaRepository,
     @inject(GLOBAL_TYPES.CourseRepo) private readonly courseRepo: CourseRepository,
     @inject(QUIZZES_TYPES.QuestionBankRepo) private readonly questionBankRepo: QuestionBankRepository,
-    @inject(QUIZZES_TYPES.QuestionRepo) private readonly questionRepo: QuestionRepository
+    @inject(QUIZZES_TYPES.QuestionRepo) private readonly questionRepo: QuestionRepository,
+    @inject(USERS_TYPES.ProgressRepo) private readonly progressRepo: ProgressRepository,
+    @inject(USERS_TYPES.EnrollmentRepo) private readonly enrollmentRepo: EnrollmentRepository,
+    @inject(STUDENT_QUESTION_TYPES.SegmentContextProvider) private readonly segmentContextProvider: SegmentContextProvider
   ) {}
 
   public async startBattle(userId: string, courseId: string): Promise<BattleSession> {
@@ -103,13 +111,49 @@ export class BattleService {
     }
 
     if (!usedPreGenerated) {
+      let segmentContext = '';
+      try {
+        // Find the user's enrollment to get the active courseVersionId
+        const enrollments = await this.enrollmentRepo.getAllEnrollments(battle.userId.toString());
+        const courseEnrollment = enrollments.find(e => e.courseId?.toString() === battle.courseId.toString() && e.status === 'ACTIVE');
+        
+        if (courseEnrollment && courseEnrollment.courseVersionId) {
+          const versionIdStr = courseEnrollment.courseVersionId.toString();
+          
+          // Get completed items from ProgressRepository
+          const completedItems = await this.progressRepo.getCompletedItems(
+            battle.userId.toString(),
+            battle.courseId.toString(),
+            versionIdStr
+          );
+
+          if (completedItems && completedItems.length > 0) {
+            // Pick a random completed item
+            const randomItemId = completedItems[Math.floor(Math.random() * completedItems.length)];
+            
+            // Get context for this item using SegmentContextProvider
+            const ctx = await this.segmentContextProvider.getContext({
+              segmentId: randomItemId,
+              courseVersionId: versionIdStr,
+            });
+
+            if (ctx) {
+              segmentContext = ctx;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch transcript context for arena question:", err);
+      }
+
       const prompt = `You are the AI opponent in a competitive strategy card game called Knowledge Clash.
 The player is studying the course: "${course.name}".
-Course Description: "${course.description}".
 
-CRITICAL RULE: You MUST NOT use any external knowledge. Every single fact, concept, or answer you generate must be explicitly tied to the provided course name and description.
-Your goal is to generate a challenge question or scenario based ONLY on the concepts found in this course.
+CRITICAL RULE: You MUST NOT use any external knowledge. Every single fact, concept, or answer you generate must be explicitly tied to the provided course context.
+Your goal is to generate a challenge question or scenario based ONLY on the concepts found in this context.
 Do not ask simple trivia. Ask a scenario or relationship question.
+
+${segmentContext ? `COURSE CONTEXT (TRANSCRIPT/LESSON INFO):\n${segmentContext}` : `COURSE DESCRIPTION:\n"${course.description}"`}
 
 Output the result strictly as a JSON object with the following format:
 {

@@ -1,0 +1,12 @@
+[
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\controllers\\QuestionController.ts",
+    "LineNumber": 526,
+    "Line": "        this.questionService.generateQuestionsWithAI(userId, chunk, {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\QuestionService.ts",
+    "LineNumber": 369,
+    "Line": "  public async generateQuestionsWithAI("
+  }
+]

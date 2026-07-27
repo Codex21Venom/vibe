@@ -1,0 +1,592 @@
+[
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\ArenaService.ts",
+    "LineNumber": 6,
+    "Line": "import { ProgressRepository } from '#shared/database/providers/mongo/repositories/ProgressRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\CourseService.ts",
+    "LineNumber": 9,
+    "Line": "  ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\CourseService.ts",
+    "LineNumber": 45,
+    "Line": "    private progressRepo: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\CourseVersionService.ts",
+    "LineNumber": 29,
+    "Line": "  ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\CourseVersionService.ts",
+    "LineNumber": 76,
+    "Line": "    private readonly progressRepository: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\CourseVersionService.ts",
+    "LineNumber": 729,
+    "Line": "      await this.progressRepository.getCourseVersionTotalWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\ItemService.ts",
+    "LineNumber": 45,
+    "Line": "  ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\ItemService.ts",
+    "LineNumber": 72,
+    "Line": "    private readonly progressRepo: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\SectionService.ts",
+    "LineNumber": 20,
+    "Line": "import {EnrollmentRepository, ProgressRepository} from '#root/shared/index.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\courses\\services\\SectionService.ts",
+    "LineNumber": 34,
+    "Line": "    private readonly progressRepo: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\AttemptService.ts",
+    "LineNumber": 62,
+    "Line": "import { ProgressRepository } from '#root/shared/database/providers/mongo/repositories/ProgressRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\AttemptService.ts",
+    "LineNumber": 109,
+    "Line": "    private readonly progressRepository: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\AttemptService.ts",
+    "LineNumber": 308,
+    "Line": "    const watchTimes = await this.progressRepository.getWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\AttemptService.ts",
+    "LineNumber": 610,
+    "Line": "    const isItemCompleted = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\quizzes\\services\\AttemptService.ts",
+    "LineNumber": 707,
+    "Line": "        const isPreviousWatched = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\EnrollmentService.ts",
+    "LineNumber": 30,
+    "Line": "  ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\EnrollmentService.ts",
+    "LineNumber": 72,
+    "Line": "    private readonly progressRepo: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 19,
+    "Line": "import { ProgressRepository } from '#shared/database/providers/mongo/repositories/ProgressRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 85,
+    "Line": "    private readonly progressRepository: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 218,
+    "Line": "      await this.progressRepository.deleteUserWatchTimeByItemIds("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 651,
+    "Line": "    const progress = await this.progressRepository.findProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 663,
+    "Line": "    const isItemCompleted = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1334,
+    "Line": "    const completedItems = await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1508,
+    "Line": "      const progress = await this.progressRepository.findProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1547,
+    "Line": "           const completedItems = await this.progressRepository.getCompletedItems(userId.toString(), courseId, courseVersionId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1555,
+    "Line": "             await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1598,
+    "Line": "    const progress = await this.progressRepository.findProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1687,
+    "Line": "      const progress = await this.progressRepository.findProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1702,
+    "Line": "        await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1764,
+    "Line": "        await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1799,
+    "Line": "      const isItemCompleted = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1810,
+    "Line": "        const existingWatchTime = await this.progressRepository.getWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1838,
+    "Line": "      const result = await this.progressRepository.startItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1861,
+    "Line": "        await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1877,
+    "Line": "        await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1911,
+    "Line": "  //     this.progressRepository.findProgress(userId, courseId, courseVersionId),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1923,
+    "Line": "  //   const isItemCompleted = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 1988,
+    "Line": "  //       stoppedWatchTime = await this.progressRepository.stopItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2010,
+    "Line": "  //       await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2041,
+    "Line": "  //       await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2089,
+    "Line": "  //         await this.progressRepository.startItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2097,
+    "Line": "  //         const wt = await this.progressRepository.getWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2106,
+    "Line": "  //           await this.progressRepository.stopItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2113,
+    "Line": "  //       await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2219,
+    "Line": "    const isPreviousCompleted = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2335,
+    "Line": "        this.progressRepository.findProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2421,
+    "Line": "          stoppedWatchTime = await this.progressRepository.stopItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2498,
+    "Line": "          await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2597,
+    "Line": "        await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2613,
+    "Line": "        await this.progressRepository.getHiddenOrDeletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 2688,
+    "Line": "      const updatedProgress = await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3051,
+    "Line": "        const watchTime = await this.progressRepository.getWatchTimeById("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3119,
+    "Line": "            await this.progressRepository.startItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3128,
+    "Line": "            const watchTimeRecords = await this.progressRepository.getWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3138,
+    "Line": "              await this.progressRepository.stopItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3157,
+    "Line": "        this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3195,
+    "Line": "      await this.progressRepository.prepareBulkQuizOperations("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3205,
+    "Line": "      this.progressRepository.executeBulkAttemptDelete(attemptDeletes, session),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3251,
+    "Line": "        this.progressRepository.findProgress(userId, courseId, courseVersionId, cohortId, session),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3292,
+    "Line": "        await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3307,
+    "Line": "        await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3331,
+    "Line": "        await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3349,
+    "Line": "        const activeWatchTimes = await this.progressRepository.getWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3376,
+    "Line": "      const watchTime = await this.progressRepository.findWatchTimeById("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3382,
+    "Line": "      const isItemCompleted = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3391,
+    "Line": "          await this.progressRepository.stopItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3454,
+    "Line": "        this.progressRepository.deleteUserWatchTimeByCourseVersion("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3486,
+    "Line": "      const result = await this.progressRepository.findAndReplaceProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3567,
+    "Line": "        this.progressRepository.deleteProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3574,
+    "Line": "        this.progressRepository.deleteUserWatchTimeByCourseVersion("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3613,
+    "Line": "    const progress = await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3628,
+    "Line": "    const watchItems = await this.progressRepository.getAllWatchTime(userId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3699,
+    "Line": "      await this.progressRepository.findAndReplaceProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3775,
+    "Line": "      await this.progressRepository.findAndReplaceProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3858,
+    "Line": "      await this.progressRepository.findAndReplaceProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3883,
+    "Line": "    const watchTime = await this.progressRepository.getWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3904,
+    "Line": "    const existingWatchTime = await this.progressRepository.getWatchTimeById("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3911,
+    "Line": "      await this.progressRepository.updateLastSeen(watchItemId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3941,
+    "Line": "    let progress = await this.progressRepository.findProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3961,
+    "Line": "    // const existingWatchTime = await this.progressRepository.getWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3972,
+    "Line": "    //   watchTimeId = await this.progressRepository.startItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3982,
+    "Line": "    //     await this.progressRepository.stopItemTracking(watchTimeId, session);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3989,
+    "Line": "    //     await this.progressRepository.stopItemTracking(watchTimeId, session);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 3993,
+    "Line": "    const alreadyCompleted = await this.progressRepository.isItemCompleted("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4005,
+    "Line": "      const watchTimeId = await this.progressRepository.startItemTracking("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4020,
+    "Line": "      await this.progressRepository.stopItemTracking(watchTimeId, session);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4034,
+    "Line": "      // await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4053,
+    "Line": "      await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4071,
+    "Line": "    await this.progressRepository.updateProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4116,
+    "Line": "      await this.progressRepository.getAllProgressForCourseVersion("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4145,
+    "Line": "      await this.progressRepository.getWeeklyEffortByCourseVersion("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4156,
+    "Line": "      await this.progressRepository.getFirstActivityByCourseVersion("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4451,
+    "Line": "      this.progressRepository.getCompletedItems(userId, courseId, versionId, cohortId),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4514,
+    "Line": "    const progress = await this.progressRepository.findProgress("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4532,
+    "Line": "      this.progressRepository.getCompletedItems(userId, courseId, versionId, cohortId),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4579,
+    "Line": "    const hiddenItems = await this.progressRepository.getHiddenOrDeletedItems(versionId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4584,
+    "Line": "      await this.progressRepository.addBulkWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4758,
+    "Line": "      const completedItemIds = await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4780,
+    "Line": "      await this.progressRepository.addBulkWatchTime("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4807,
+    "Line": "      await this.progressRepository.getAllProgressForCourseVersion("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\services\\ProgressService.ts",
+    "LineNumber": 4954,
+    "Line": "    const completedItemIds = await this.progressRepository.getCompletedItems("
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\tests\\ProgressController.test.ts",
+    "LineNumber": 10,
+    "Line": "import { ProgressRepository } from '#shared/database/providers/mongo/repositories/ProgressRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\tests\\ProgressController.test.ts",
+    "LineNumber": 504,
+    "Line": "      const originalGet = ProgressRepository.prototype.getWatchTimeById;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\tests\\ProgressController.test.ts",
+    "LineNumber": 507,
+    "Line": "        ProgressRepository.prototype,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\tests\\ProgressService.leaderboard.test.ts",
+    "LineNumber": 8,
+    "Line": " *   - progressRepository (getAllProgressForCourseVersion, getWeeklyEffortByCourseVersion)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\tests\\ProgressService.leaderboard.test.ts",
+    "LineNumber": 27,
+    "Line": "  service.progressRepository = {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\container.ts",
+    "LineNumber": 4,
+    "Line": "import {ProgressRepository} from '#root/shared/database/providers/mongo/repositories/ProgressRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\users\\container.ts",
+    "LineNumber": 20,
+    "Line": "    .to(ProgressRepository)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\database\\providers\\mongo\\repositories\\CourseRepository.ts",
+    "LineNumber": 30,
+    "Line": "import { ProgressRepository } from './ProgressRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\database\\providers\\mongo\\repositories\\CourseRepository.ts",
+    "LineNumber": 80,
+    "Line": "    private progressRepo: ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\database\\providers\\mongo\\repositories\\index.ts",
+    "LineNumber": 3,
+    "Line": "export * from './ProgressRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\database\\providers\\mongo\\repositories\\ProgressRepository.ts",
+    "LineNumber": 16,
+    "Line": "class ProgressRepository {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\database\\providers\\mongo\\repositories\\ProgressRepository.ts",
+    "LineNumber": 317,
+    "Line": "      console.log('[ProgressRepository] watchTimeCollection not initialized');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\shared\\database\\providers\\mongo\\repositories\\ProgressRepository.ts",
+    "LineNumber": 1552,
+    "Line": "export { ProgressRepository };"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\workers\\clone-course.worker.ts",
+    "LineNumber": 9,
+    "Line": "    ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\workers\\clone-course.worker.ts",
+    "LineNumber": 65,
+    "Line": "const progressRepo = new ProgressRepository(database);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\workers\\invite-email.worker.ts",
+    "LineNumber": 10,
+    "Line": "  ProgressRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\workers\\invite-email.worker.ts",
+    "LineNumber": 67,
+    "Line": "const progressRepo = new ProgressRepository(database)"
+  }
+]

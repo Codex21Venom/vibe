@@ -1,0 +1,182 @@
+[
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 5,
+    "Line": "import \"./arena.css\";"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 7,
+    "Line": "interface ArenaBattleProps {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 12,
+    "Line": "export default function ArenaBattle({ courseId, onExit }: ArenaBattleProps) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 22,
+    "Line": "        const res = await apiClient.post<any>(`/arena/${courseId}/battle/start`);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 40,
+    "Line": "      const res = await apiClient.post<any>(`/arena/battle/${battleState._id}/question`);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 60,
+    "Line": "      const res = await apiClient.post<any>(`/arena/battle/${battleState._id}/submit`, { cards: selectedCards });"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 74,
+    "Line": "      const res = await apiClient.post<any>(`/arena/battle/${battleState._id}/combat`, { action });"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 91,
+    "Line": "  if (loading && !battleState) return <div className=\"arena-loader\">Starting Battle...</div>;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaBattle.tsx",
+    "LineNumber": 94,
+    "Line": "    <div className=\"arena-battle-container p-6 w-full max-w-6xl mx-auto\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 4,
+    "Line": "import \"./arena.css\";"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 5,
+    "Line": "import ArenaBattle from \"./ArenaBattle\";"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 7,
+    "Line": "export default function ArenaDashboard() {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 17,
+    "Line": "        const response = await apiClient.get<any[]>('/arena/courses');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 20,
+    "Line": "        console.error(\"Failed to load arena courses\", err);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 29,
+    "Line": "    return <ArenaBattle courseId={selectedCourse} onExit={() => setBattling(false)} />;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 33,
+    "Line": "    <div className=\"arena-container\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 34,
+    "Line": "      <div className=\"arena-header\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 36,
+    "Line": "          <AuroraText>Knowledge Clash Arena</AuroraText>"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 41,
+    "Line": "      <div className=\"arena-content\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 43,
+    "Line": "          <div className=\"arena-loader\">Loading Arena...</div>"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 45,
+    "Line": "          <div className=\"arena-course-selection\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 50,
+    "Line": "              <div className=\"arena-course-grid\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 54,
+    "Line": "                    className={`arena-course-card ${selectedCourse === course.courseId ? 'selected' : ''}`}"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 68,
+    "Line": "              <div className=\"arena-actions mt-8\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 69,
+    "Line": "                <button onClick={() => setBattling(true)} className=\"arena-btn-primary\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\pages\\student\\arena\\ArenaDashboard.tsx",
+    "LineNumber": 72,
+    "Line": "                <button className=\"arena-btn-secondary ml-4\">"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\router.tsx",
+    "LineNumber": 73,
+    "Line": "import ArenaDashboard from '@/app/pages/student/arena/ArenaDashboard'"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\router.tsx",
+    "LineNumber": 490,
+    "Line": "// Student arena route"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\router.tsx",
+    "LineNumber": 491,
+    "Line": "const studentArenaRoute = new Route({"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\router.tsx",
+    "LineNumber": 493,
+    "Line": "  path: '/arena',"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\router.tsx",
+    "LineNumber": 494,
+    "Line": "  component: ArenaDashboard,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\router.tsx",
+    "LineNumber": 722,
+    "Line": "    studentArenaRoute,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\student-routes.tsx",
+    "LineNumber": 13,
+    "Line": "import ArenaDashboard from \"@/app/pages/student/arena/ArenaDashboard\";"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\student-routes.tsx",
+    "LineNumber": 56,
+    "Line": "      path: \"arena\","
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\app\\routes\\student-routes.tsx",
+    "LineNumber": 57,
+    "Line": "      element: <ArenaDashboard />"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\frontend\\src\\components\\student-sidebar\\nav-items.tsx",
+    "LineNumber": 25,
+    "Line": "  { key: \"arena\", title: \"Arena\", to: \"/student/arena\", icon: SquareTerminal },"
+  }
+]

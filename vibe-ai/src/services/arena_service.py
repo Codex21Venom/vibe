@@ -10,7 +10,7 @@ from arena_schema import ARENA_QUESTION_SCHEMA
 from models import ArenaQuestionRequest, ArenaQuestionResponse
 
 class ArenaService:
-    DEFAULT_MODEL = "gemini-2.5-flash"
+    DEFAULT_MODEL = "gemini-3.6-flash"
 
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")

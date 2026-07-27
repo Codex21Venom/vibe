@@ -1,0 +1,337 @@
+[
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 13,
+    "Line": "export class ArenaCard {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 21,
+    "Line": "export class ArenaQuestion {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 26,
+    "Line": "  @Type(() => ArenaCard)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 27,
+    "Line": "  correct_cards: ArenaCard[];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 30,
+    "Line": "  @Type(() => ArenaCard)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 31,
+    "Line": "  distractor_cards: ArenaCard[];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 34,
+    "Line": "export class ArenaMatch {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 67,
+    "Line": "  @Type(() => ArenaQuestion)"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\classes\\transformers\\Arena.ts",
+    "LineNumber": 68,
+    "Line": "  currentQuestion?: ArenaQuestion;"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 3,
+    "Line": "import { ArenaService, BattleService } from '../services/index.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 6,
+    "Line": "@JsonController('/arena')"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 8,
+    "Line": "export class ArenaController {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 10,
+    "Line": "    @inject('ArenaService') private readonly arenaService: ArenaService,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 18,
+    "Line": "    return this.arenaService.getStudentCourses(user._id.toString());"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 24,
+    "Line": "    return this.arenaService.getUserCollection(user._id.toString(), courseId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 30,
+    "Line": "    return this.arenaService.getUserDeck(user._id.toString(), courseId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\ArenaController.ts",
+    "LineNumber": 40,
+    "Line": "    return this.arenaService.saveUserDeck(user._id.toString(), courseId, body.cards);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\controllers\\index.ts",
+    "LineNumber": 1,
+    "Line": "export * from './ArenaController.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 10,
+    "Line": "export class ArenaRepository {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 22,
+    "Line": "    const col = await this.getCollection<UserCard>('arena_user_cards');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 27,
+    "Line": "    const col = await this.getCollection<UserCard>('arena_user_cards');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 36,
+    "Line": "    const col = await this.getCollection<Deck>('arena_decks');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 41,
+    "Line": "    const col = await this.getCollection<Deck>('arena_decks');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 50,
+    "Line": "    const col = await this.getCollection<BattleSession>('arena_battle_sessions');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 55,
+    "Line": "    const col = await this.getCollection<BattleSession>('arena_battle_sessions');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\repositories\\ArenaRepository.ts",
+    "LineNumber": 61,
+    "Line": "    const col = await this.getCollection<BattleSession>('arena_battle_sessions');"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\ArenaService.ts",
+    "LineNumber": 2,
+    "Line": "import { ArenaRepository } from '../repositories/ArenaRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\ArenaService.ts",
+    "LineNumber": 13,
+    "Line": "export class ArenaService {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\ArenaService.ts",
+    "LineNumber": 15,
+    "Line": "    @inject('ArenaRepository') private readonly arenaRepo: ArenaRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\ArenaService.ts",
+    "LineNumber": 40,
+    "Line": "    return this.arenaRepo.getUserCards(userId, courseId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\ArenaService.ts",
+    "LineNumber": 44,
+    "Line": "    return this.arenaRepo.getDeck(userId, courseId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\ArenaService.ts",
+    "LineNumber": 56,
+    "Line": "    await this.arenaRepo.saveDeck(deck);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 2,
+    "Line": "import { ArenaRepository } from '../repositories/ArenaRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 14,
+    "Line": "    @inject('ArenaRepository') private readonly arenaRepo: ArenaRepository,"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 22,
+    "Line": "    const existing = await this.arenaRepo.getActiveBattle(userId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 25,
+    "Line": "      await this.arenaRepo.saveBattle(existing);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 39,
+    "Line": "    return this.arenaRepo.saveBattle(battle);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 43,
+    "Line": "    const battle = await this.arenaRepo.getBattleById(battleId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 162,
+    "Line": "    await this.arenaRepo.saveBattle(battle);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 167,
+    "Line": "    const battle = await this.arenaRepo.getBattleById(battleId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 200,
+    "Line": "    await this.arenaRepo.saveBattle(battle);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 215,
+    "Line": "    const battle = await this.arenaRepo.getBattleById(battleId);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\BattleService.ts",
+    "LineNumber": 250,
+    "Line": "    return this.arenaRepo.saveBattle(battle);"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\services\\index.ts",
+    "LineNumber": 1,
+    "Line": "export * from './ArenaService.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\container.ts",
+    "LineNumber": 2,
+    "Line": "import { ArenaRepository } from './repositories/ArenaRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\container.ts",
+    "LineNumber": 3,
+    "Line": "import { ArenaService } from './services/ArenaService.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\container.ts",
+    "LineNumber": 5,
+    "Line": "import { ArenaController } from './controllers/ArenaController.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\container.ts",
+    "LineNumber": 7,
+    "Line": "export function bindArenaModule(container: Container) {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\container.ts",
+    "LineNumber": 8,
+    "Line": "  container.bind<ArenaRepository>('ArenaRepository').to(ArenaRepository).inSingletonScope();"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\container.ts",
+    "LineNumber": 9,
+    "Line": "  container.bind<ArenaService>('ArenaService').to(ArenaService).inSingletonScope();"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\container.ts",
+    "LineNumber": 11,
+    "Line": "  container.bind<ArenaController>('ArenaController').to(ArenaController).inSingletonScope();"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 2,
+    "Line": "import { ArenaRepository } from './repositories/ArenaRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 3,
+    "Line": "import { ArenaService } from './services/ArenaService.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 5,
+    "Line": "import { ArenaController } from './controllers/ArenaController.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 8,
+    "Line": "export * from './repositories/ArenaRepository.js';"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 13,
+    "Line": "export const arenaModuleControllers = [ArenaController];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 14,
+    "Line": "export const arenaModuleValidators = [];"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 16,
+    "Line": "export const arenaContainerModules = ["
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 18,
+    "Line": "    options.bind<ArenaRepository>('ArenaRepository').to(ArenaRepository).inSingletonScope();"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 19,
+    "Line": "    options.bind<ArenaService>('ArenaService').to(ArenaService).inSingletonScope();"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 21,
+    "Line": "    options.bind<ArenaController>(ArenaController).toSelf().inSingletonScope();"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\index.ts",
+    "LineNumber": 25,
+    "Line": "export const setupArenaContainer = async () => {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\types.ts",
+    "LineNumber": 1,
+    "Line": "export const ARENA_TYPES = {"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\types.ts",
+    "LineNumber": 2,
+    "Line": "  ArenaService: Symbol.for('ArenaService'),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\types.ts",
+    "LineNumber": 3,
+    "Line": "  ArenaController: Symbol.for('ArenaController'),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\modules\\arena\\types.ts",
+    "LineNumber": 4,
+    "Line": "  ArenaRepository: Symbol.for('ArenaRepository'),"
+  },
+  {
+    "Path": "C:\\Users\\tinku\\Documents\\VIBE-Project\\vibe\\backend\\src\\index.ts",
+    "LineNumber": 92,
+    "Line": "console.log(\"Backend restarted to load new Arena modules.\");"
+  }
+]
