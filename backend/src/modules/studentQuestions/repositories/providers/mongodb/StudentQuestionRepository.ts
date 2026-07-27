@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import zlib from 'zlib';
 import {Collection, ObjectId, ClientSession} from 'mongodb';
 import {injectable, inject} from 'inversify';
 import {MongoDatabase} from '#shared/database/providers/mongo/MongoDatabase.js';
@@ -85,7 +86,16 @@ export class StudentQuestionRepository {
     await this.init();
     const doc = await this.segmentContextCollection.findOne({segmentId});
     const text = doc?.text;
-    return typeof text === 'string' && text.trim() ? text : null;
+    if (typeof text === 'string' && text.trim()) {
+      try {
+        const decompressed = zlib.inflateSync(Buffer.from(text, 'base64')).toString('utf-8');
+        return decompressed;
+      } catch (e) {
+        // Fallback for legacy uncompressed transcripts
+        return text;
+      }
+    }
+    return null;
   }
 
   /** Upsert precomputed segment context (used by the transcript backfill). */

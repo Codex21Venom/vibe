@@ -8,7 +8,8 @@ import {JobBody} from '#root/modules/genAI/classes/validators/GenAIValidators.js
 import {MongoDatabase} from '#root/shared/index.js';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {inject, injectable} from 'inversify';
-import {ClientSession, Collection, ObjectId} from 'mongodb';
+import {ClientSession, Collection, ObjectId, GridFSBucket} from 'mongodb';
+import { Readable } from 'stream';
 
 @injectable()
 export class GenAIRepository {
@@ -19,6 +20,11 @@ export class GenAIRepository {
     @inject(GLOBAL_TYPES.Database)
     private db: MongoDatabase,
   ) {}
+
+  private get audioBucket(): GridFSBucket {
+    if (!this.db.database) throw new Error('Database not initialized');
+    return new GridFSBucket(this.db.database, { bucketName: 'temp_audios' });
+  }
 
   async init() {
     this.genAICollection = await this.db.getCollection<GenAIBody>('genAI_jobs');
@@ -118,11 +124,38 @@ export class GenAIRepository {
     // );
     return result.insertedId?.toString();
   }
+  async saveAudioToGridFS(
+    jobId: string,
+    fileName: string,
+    buffer: Buffer,
+    contentType: string
+  ): Promise<string> {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const uploadStream = this.audioBucket.openUploadStream(fileName, {
+        metadata: { jobId, contentType }
+      });
+      const readable = new Readable();
+      readable.push(buffer);
+      readable.push(null);
+      
+      readable.pipe(uploadStream)
+        .on('error', reject)
+        .on('finish', () => resolve(uploadStream.id.toString()));
+    });
+  }
 
+  async deleteAudioFromGridFSByJobId(jobId: string): Promise<void> {
+    await this.init();
+    const files = await this.audioBucket.find({ 'metadata.jobId': jobId }).toArray();
+    for (const file of files) {
+      await this.audioBucket.delete(file._id);
+    }
+  }
   async createTaskDataWithTranscript(
     jobId: string,
     fileName: string,
-    url: string,
+    compressedData: string,
     session?: ClientSession,
   ): Promise<string> {
     await this.init();
@@ -137,7 +170,8 @@ export class GenAIRepository {
           {
             status: TaskStatus.COMPLETED,
             fileName: fileName,
-            fileUrl: url,
+            fileUrl: '', // Intentionally blank as we use compressedData now
+            compressedData: compressedData,
           },
         ],
       },

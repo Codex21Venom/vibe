@@ -325,13 +325,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
+  justify-content: flex-start; /* Better alignment for long text */
+  padding: 0.75rem; /* Slightly tighter padding to fit more text */
   text-align: center;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   cursor: pointer;
   position: relative;
   box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+  overflow: hidden; /* Ensure text never spills out */
 }
 
 .playing-card:hover:not(.disabled) {

@@ -85,13 +85,22 @@ class MongoStorageService:
             print(f"Error uploading file to MongoDB: {str(e)}")
             return None
 
-    async def upload_text_content(self, content: str, destination_name: str, content_type: str = 'text/plain') -> Optional[str]:
+    async def upload_text_content(self, content: str, destination_name: str, content_type: str = 'text/plain', is_temporary: bool = True, compress: bool = False) -> Optional[str]:
         """
         Upload text content directly to MongoDB GridFS.
+        Optionally compress it and set whether it is temporary (TTL).
         """
         try:
             # Convert text to bytes
             content_bytes = content.encode('utf-8')
+            
+            if compress:
+                import gzip
+                original_size = len(content_bytes)
+                content_bytes = gzip.compress(content_bytes)
+                compressed_size = len(content_bytes)
+                content_type = 'application/gzip'
+                print(f"✅ Compression successful! Size reduced from {original_size} to {compressed_size} bytes ({(1 - compressed_size/original_size)*100:.1f}% reduction).")
             
             file_id = await self.fs.upload_from_stream(
                 destination_name,
@@ -99,15 +108,16 @@ class MongoStorageService:
                 metadata={"contentType": content_type}
             )
             
-            current_time = datetime.now(timezone.utc)
-            await self.db.fs.files.update_one(
-                {"_id": file_id},
-                {"$set": {"createdAt": current_time}}
-            )
-            await self.db.fs.chunks.update_many(
-                {"files_id": file_id},
-                {"$set": {"createdAt": current_time}}
-            )
+            if is_temporary:
+                current_time = datetime.now(timezone.utc)
+                await self.db.fs.files.update_one(
+                    {"_id": file_id},
+                    {"$set": {"createdAt": current_time}}
+                )
+                await self.db.fs.chunks.update_many(
+                    {"files_id": file_id},
+                    {"$set": {"createdAt": current_time}}
+                )
             
             public_url = f"{self.server_url}/jobs/temp_files/{str(file_id)}"
             return public_url
@@ -116,9 +126,9 @@ class MongoStorageService:
             print(f"Error uploading text content to MongoDB: {str(e)}")
             return None
 
-    async def upload_json_content(self, data: Any, destination_name: str) -> Optional[str]:
+    async def upload_json_content(self, data: Any, destination_name: str, is_temporary: bool = True, compress: bool = False) -> Optional[str]:
         """
         Upload JSON data to MongoDB GridFS.
         """
         json_content = json.dumps(data)
-        return await self.upload_text_content(json_content, destination_name, 'application/json')
+        return await self.upload_text_content(json_content, destination_name, 'application/json', is_temporary, compress)

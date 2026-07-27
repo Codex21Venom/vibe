@@ -23,7 +23,7 @@ export const screeningConfig = {
 
   gemini: {
     apiKey: env('GEMINI_API_KEY'),
-    model: env('GEMINI_MODEL') || 'gemini-2.5-flash',
+    model: env('GEMINI_MODEL') || 'gemini-3.6-flash',
   },
 
   /** Per-call hard deadline (ms) — a slow provider must never hang a submission. */

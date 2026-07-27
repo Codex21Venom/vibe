@@ -51,6 +51,9 @@ import { InviteService } from '#root/modules/notifications/index.js';
 import { NOTIFICATIONS_TYPES } from '#root/modules/notifications/types.js';
 import { HP_SYSTEM_TYPES } from '#root/modules/hpSystem/types.js';
 import { CohortRepository } from '#root/modules/hpSystem/repositories/providers/mongodb/cohortsRepository.js';
+
+import { GenAIRepository } from '../../genAI/repositories/providers/mongodb/GenAIRepository.js';
+import { GENAI_TYPES } from '../../genAI/types.js';
 @injectable()
 export class CourseVersionService extends BaseService {
   constructor(
@@ -66,6 +69,8 @@ export class CourseVersionService extends BaseService {
     private readonly itemService: ItemService,
     @inject(SETTING_TYPES.SettingRepo)
     private readonly settingsRepo: SettingRepository,
+    @inject(GENAI_TYPES.GenAIRepository)
+    private readonly genAIRepo: GenAIRepository,
     @inject(COURSES_TYPES.ItemRepo)
     private readonly itemRepo: IItemRepository,
     @inject(QUIZZES_TYPES.QuestionRepo)
@@ -857,6 +862,20 @@ export class CourseVersionService extends BaseService {
           { courseVersionId: versionId },
           session,
         );
+      } else if (versionStatus === 'active' || versionStatus === 'published') {
+        // Cleanup all temporary audio files when a course is successfully published
+        try {
+          const db = (this.genAIRepo as any).db;
+          if (db && db.database) {
+            const audioBucket = new (require('mongodb').GridFSBucket)(db.database, { bucketName: 'temp_audios' });
+            const files = await audioBucket.find({}).toArray();
+            for (const file of files) {
+              await audioBucket.delete(file._id);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to cleanup temporary audios on publish', e);
+        }
       }
       const result = await this.courseRepo.updateCourseVersionStatus(
         versionId,

@@ -87,6 +87,7 @@ export interface trascriptGenerationData {
 	error?: string;
 	fileName?: string;
 	fileUrl?: string;
+	compressedData?: string;
 	newParamers?: TranscriptParameters;
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AuroraText } from "@/components/magicui/aurora-text";
 import { Swords, Shield, Zap, RefreshCw, Crosshair, Play } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
 import "./arena.css";
 
 interface ArenaBattleProps {
@@ -26,21 +27,13 @@ interface QuestionCard {
   promptText: string;
 }
 
-type RoundState = 'intro' | 'playing' | 'resolving' | 'game_over';
+type RoundState = 'intro' | 'loading' | 'playing' | 'resolving' | 'game_over';
 
-// --- Mock Data Generator ---
-const generateMockHand = (): Card[] => {
-  return [
-    { id: 'c1', name: 'Concept A', type: 'CONCEPT_ANSWER', description: 'A distractor concept.', isCorrect: false },
-    { id: 'c2', name: 'Concept B', type: 'CONCEPT_ANSWER', description: 'The correct concept.', isCorrect: true },
-    { id: 'c3', name: 'Concept C', type: 'CONCEPT_ANSWER', description: 'Another distractor.', isCorrect: false },
-    { id: 'c4', name: 'Concept D', type: 'CONCEPT_ANSWER', description: 'Yet another distractor.', isCorrect: false },
-    { id: 'p1', name: '2x Score', type: 'POWER_UP', description: 'Doubles points if correct.', powerUpType: 'MULTIPLIER_2X' },
-  ].sort(() => Math.random() - 0.5); // Shuffle
-};
+// Mock data generator removed
 
 export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [battleId, setBattleId] = useState<string | null>(null);
   
   // Game State
   const [currentRound, setCurrentRound] = useState(1);
@@ -56,9 +49,13 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [question, setQuestion] = useState<QuestionCard | null>(null);
   
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const [playedCard, setPlayedCard] = useState<Card | null>(null);
-  const [computerPlayedCard, setComputerPlayedCard] = useState<Card | null>(null);
+  const [selectedCards, setSelectedCards] = useState<Card[]>([]);
+  const [playedCards, setPlayedCards] = useState<Card[]>([]);
+  const [computerPlayedCards, setComputerPlayedCards] = useState<Card[]>([]);
+  const [computerComboName, setComputerComboName] = useState<string>("");
+  const [computerComboMultiplier, setComputerComboMultiplier] = useState<number>(1);
+  const [comboName, setComboName] = useState<string>("");
+  const [comboMultiplier, setComboMultiplier] = useState<number>(1);
   
   const [roundResultText, setRoundResultText] = useState("");
   
@@ -72,27 +69,61 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
         await battleContainerRef.current.requestFullscreen();
       }
       setIsFullscreen(true);
-      startNewRound(1);
+      setRoundState('loading');
+      
+      const response = await apiClient.post(`/arena/${courseId}/battle/start`);
+      const newBattleId = response.data._id;
+      setBattleId(newBattleId);
+      
+      startNewRound(1, newBattleId);
     } catch (err) {
-      console.warn("Fullscreen API failed or blocked", err);
-      setIsFullscreen(true); // Proceed anyway
-      startNewRound(1);
+      console.warn("API failed or blocked", err);
+      alert("Failed to start match from server.");
+      setIsFullscreen(false);
+      if (document.fullscreenElement) {
+         document.exitFullscreen();
+      }
+      if (onExit) onExit();
+      return;
     }
   };
 
-  const startNewRound = (roundNum: number) => {
+  const startNewRound = async (roundNum: number, bId?: string) => {
     if (roundNum > 10 || playerHP <= 0 || computerHP <= 0) {
       setRoundState('game_over');
       return;
     }
     
     setCurrentRound(roundNum);
-    setPlayerHand(generateMockHand());
-    setQuestion({ promptText: `Mock Scenario for Round ${roundNum}: Which concept solves this problem?` });
-    setSelectedCard(null);
-    setPlayedCard(null);
-    setComputerPlayedCard(null);
+    setSelectedCards([]);
+    setPlayedCards([]);
+    setComboName("");
+    setComboMultiplier(1);
+    setComputerPlayedCards([]);
+    setComputerComboName("");
+    setComputerComboMultiplier(1);
     setTimer(15);
+    setRoundState('loading');
+    
+    const activeBattleId = bId || battleId;
+    if (activeBattleId) {
+      try {
+         const qRes = await apiClient.post(`/arena/battle/${activeBattleId}/question`);
+         const { text, deck } = qRes.data;
+         setQuestion({ promptText: text });
+         setPlayerHand(deck);
+      } catch (err) {
+         console.error("Failed fetching question", err);
+         alert("Failed to fetch round from API. Match aborted.");
+         setRoundState('game_over');
+         return;
+      }
+    } else {
+       alert("No active battle found. Match aborted.");
+       setRoundState('game_over');
+       return;
+    }
+
     setRoundState('playing');
   };
 
@@ -101,40 +132,73 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     if (roundState === 'playing' && timer > 0) {
       timerRef.current = setTimeout(() => setTimer(timer - 1), 1000);
     } else if (roundState === 'playing' && timer === 0) {
-      // Auto-play a random card if timer runs out
-      const randomCard = playerHand.find(c => c.type === 'CONCEPT_ANSWER') || playerHand[0];
-      handlePlayCard(randomCard);
+      // Auto-play selected or a random card if timer runs out
+      if (selectedCards.length > 0) {
+        handlePlayCards(selectedCards);
+      } else {
+        const randomCard = playerHand.find(c => c.type === 'CONCEPT_ANSWER') || playerHand[0];
+        handlePlayCards(randomCard ? [randomCard] : []);
+      }
     }
     
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [timer, roundState, playerHand]);
+  }, [timer, roundState, playerHand, selectedCards]);
 
-  const handlePlayCard = (card: Card) => {
+  const handlePlayCards = async (cards: Card[]) => {
     if (roundState !== 'playing') return;
     
     setRoundState('resolving');
-    setPlayedCard(card);
+    setPlayedCards(cards);
     
-    // Simulate Computer AI playing a card
-    // 75% chance to play correct card if it exists, otherwise random
-    const isCompCorrect = Math.random() < 0.75;
-    const compCard: Card = {
-      id: 'comp_c1',
-      name: isCompCorrect ? 'Correct Concept' : 'Wrong Concept',
-      type: 'CONCEPT_ANSWER',
-      description: 'Computer AI Choice',
-      isCorrect: isCompCorrect
-    };
+    let submitRes: any = null;
+    
+    if (battleId && cards.length > 0) {
+      try {
+         const response = await apiClient.post(`/arena/battle/${battleId}/submit`, { cards: cards.map(c => c.name || 'Timeout') });
+         submitRes = response.data;
+         setComboName(submitRes.comboName || "Combo Broken!");
+         setComboMultiplier(submitRes.multiplier || 0);
+      } catch (e) {
+         console.error("Failed submitting answer", e);
+      }
+    }
+    
+    // Simulate Computer AI playing a combination (Game Theory)
+    const correctCards = playerHand.filter(c => c.isCorrect);
+    const distractors = playerHand.filter(c => !c.isCorrect);
+    
+    let compCards: Card[] = [];
+    const rand = Math.random();
+    
+    if (rand < 0.1) {
+        // 10% chance: Total blunder (plays 1-2 distractors)
+        compCards = distractors.slice(0, Math.max(1, Math.floor(Math.random() * distractors.length)));
+    } else if (rand < 0.4) {
+        // 30% chance: Safe play (plays 1 correct card)
+        compCards = correctCards.slice(0, 1);
+    } else if (rand < 0.7) {
+        // 30% chance: Greedy but flawed (plays all correct + 1 distractor by mistake)
+        if (distractors.length > 0) {
+            compCards = [...correctCards, distractors[0]];
+        } else {
+            compCards = correctCards;
+        }
+    } else {
+        // 30% chance: Perfect optimal combo (plays ALL correct cards)
+        compCards = correctCards;
+    }
+    
+    if (compCards.length === 0) compCards = [playerHand[0]]; // fallback
     
     setTimeout(() => {
-      setComputerPlayedCard(compCard);
-      resolveRound(card, compCard);
+      setComputerPlayedCards(compCards);
+      resolveRound(cards, compCards, submitRes);
     }, 1000); // 1 second dramatic pause before reveal
   };
 
-  const resolveRound = (pCard: Card, cCard: Card) => {
+  const resolveRound = (pCards: Card[], cCards: Card[], submitRes: any) => {
     let pDamage = 0;
     let cDamage = 0;
     let pScoreDelta = 0;
@@ -142,22 +206,48 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     
     let resultMsg = "";
 
-    // Resolve Player
-    if (pCard.isCorrect) {
-      pScoreDelta += 100;
-      cDamage += Math.max(10, Math.floor(baitedHp * 0.1)); // Deal 10% of baited HP as damage
-      resultMsg += "You answered correctly! ";
+    // Resolve Player via API response
+    if (submitRes) {
+      pScoreDelta += submitRes.kpEarned || 0;
+      pDamage += submitRes.hpLost || 0;
+      
+      if (submitRes.multiplier > 0) {
+        cDamage += Math.max(10, Math.floor(baitedHp * 0.1)) * submitRes.multiplier;
+        resultMsg += `You struck with ${submitRes.comboName}! `;
+      } else {
+        resultMsg += "Your combo failed! ";
+      }
     } else {
-      pDamage += Math.max(10, Math.floor(baitedHp * 0.1));
-      resultMsg += "You answered incorrectly. ";
+      resultMsg += "Timeout! ";
+      pDamage += 10;
     }
 
-    // Resolve Computer
-    if (cCard.isCorrect) {
-      cScoreDelta += 100;
-      pDamage += Math.max(10, Math.floor(baitedHp * 0.1));
+    // Resolve Computer (Frontend Calculation)
+    const cCorrectCount = cCards.filter(c => c.isCorrect).length;
+    const cHasMistake = cCards.some(c => !c.isCorrect);
+    
+    let cMultiplier = 1;
+    let cComboName = "Single Strike";
+    
+    if (!cHasMistake) {
+        if (cCorrectCount === 2) { cMultiplier = 1.5; cComboName = "Pair Combo!"; }
+        else if (cCorrectCount === 3) { cMultiplier = 2.0; cComboName = "Three of a Kind!"; }
+        else if (cCorrectCount === 4) { cMultiplier = 2.5; cComboName = "Four of a Kind!"; }
+        else if (cCorrectCount >= 5) { cMultiplier = 3.0; cComboName = "Full House Mastery!"; }
+        else if (cCorrectCount === 0) { cMultiplier = 0; cComboName = "Miss"; }
     } else {
-      cDamage += Math.max(10, Math.floor(baitedHp * 0.1));
+        cMultiplier = 0;
+        cComboName = "Combo Broken!";
+    }
+    
+    setComputerComboName(cComboName);
+    setComputerComboMultiplier(cMultiplier);
+    
+    if (cMultiplier > 0) {
+        cScoreDelta += Math.round((cCorrectCount / 5) * 50 * cMultiplier); // Approx AI score
+        pDamage += Math.max(10, Math.floor(baitedHp * 0.1)) * cMultiplier;
+    } else {
+        cDamage += 10; // AI takes penalty for broken combo
     }
     
     // Apply stats
@@ -167,7 +257,7 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     setComputerScore(prev => prev + cScoreDelta);
     setRoundResultText(resultMsg);
 
-    // Wait 3 seconds, then next round
+    // Wait 3.5 seconds, then next round
     setTimeout(() => {
       startNewRound(currentRound + 1);
     }, 3500);
@@ -284,6 +374,13 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
           ROUND {currentRound} / 10
         </div>
         
+        {roundState === 'loading' && (
+          <div className="animate-pop-in flex flex-col items-center justify-center mt-12">
+            <RefreshCw className="animate-spin text-purple-400 w-12 h-12 mb-4" />
+            <h3 className="text-xl font-bold text-white">Generating Question from AI...</h3>
+          </div>
+        )}
+
         {roundState === 'playing' && (
           <div className="animate-pop-in flex flex-col items-center">
             <div className={`timer-circle ${timer <= 5 ? 'warning' : ''}`}>
@@ -292,44 +389,70 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
             <div className="question-board">
               <h3 className="text-2xl font-semibold text-white">{question?.promptText}</h3>
             </div>
+            <div className="flex justify-center w-full mt-6">
+              <button 
+                 onClick={() => handlePlayCards(selectedCards)}
+                 disabled={selectedCards.length === 0}
+                 className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-12 rounded-full text-lg shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all hover:scale-105"
+              >
+                 Play Combination ({selectedCards.length})
+              </button>
+            </div>
           </div>
         )}
 
         {roundState === 'resolving' && (
           <div className="resolution-area animate-pop-in">
-            {/* Player's Played Card */}
+            {/* Player's Played Cards */}
             <div className="flex flex-col items-center">
-              <span className="text-green-400 font-bold mb-4">You Played</span>
-              <div className={`playing-card ${playedCard?.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'}`}>
-                <div className="card-type">{playedCard?.type === 'POWER_UP' ? 'Power-Up' : 'Concept'}</div>
-                <div className="card-title text-xl mt-4">{playedCard?.name}</div>
-                <div className={`mt-auto font-bold ${playedCard?.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-                  {playedCard?.isCorrect ? 'CORRECT' : 'INCORRECT'}
-                </div>
+              <span className="text-green-400 font-bold mb-4 uppercase tracking-widest">You Played</span>
+              {comboName && comboMultiplier > 1 && (
+                <div className="text-amber-400 font-black text-2xl animate-pulse mb-2">{comboName} (x{comboMultiplier})</div>
+              )}
+              {comboMultiplier === 0 && (
+                <div className="text-red-500 font-black text-2xl animate-pulse mb-2">{comboName}</div>
+              )}
+              <div className="flex gap-2 justify-center">
+                {playedCards.map(c => (
+                  <div key={c.id} className={`playing-card scale-75 origin-top ${c.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'}`}>
+                    <div className="card-type">{c.type === 'POWER_UP' ? 'Power-Up' : 'Concept'}</div>
+                    <div className="card-title text-sm mt-4 line-clamp-2" title={c.name}>{c.name}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="text-4xl font-black text-white px-8">VS</div>
 
-            {/* Computer's Played Card */}
+            {/* Computer's Played Cards */}
             <div className="flex flex-col items-center">
-              <span className="text-red-400 font-bold mb-4">AI Played</span>
-              {computerPlayedCard ? (
-                <div className="playing-card concept-card animate-pop-in">
-                  <div className="card-type">Concept</div>
-                  <div className="card-title text-xl mt-4">{computerPlayedCard.name}</div>
-                  <div className={`mt-auto font-bold ${computerPlayedCard.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-                    {computerPlayedCard.isCorrect ? 'CORRECT' : 'INCORRECT'}
-                  </div>
+              <span className="text-red-400 font-bold mb-4 uppercase tracking-widest">AI Played</span>
+              {computerComboName && computerComboMultiplier > 1 && (
+                <div className="text-amber-400 font-black text-2xl animate-pulse mb-2">{computerComboName} (x{computerComboMultiplier})</div>
+              )}
+              {computerComboMultiplier === 0 && (
+                <div className="text-red-500 font-black text-2xl animate-pulse mb-2">{computerComboName}</div>
+              )}
+              {computerPlayedCards.length > 0 ? (
+                <div className="flex gap-2 justify-center">
+                  {computerPlayedCards.map(c => (
+                    <div key={c.id} className={`playing-card scale-75 origin-top ${c.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'} animate-pop-in`}>
+                      <div className="card-type">{c.type === 'POWER_UP' ? 'Power-Up' : 'Concept'}</div>
+                      <div className="card-title text-sm mt-4 line-clamp-2" title={c.name}>{c.name}</div>
+                      <div className={`mt-auto text-xs font-bold ${c.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                        {c.isCorrect ? 'CORRECT' : 'INCORRECT'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="playing-card concealed"></div>
+                <div className="playing-card concealed scale-75"></div>
               )}
             </div>
           </div>
         )}
 
-        {roundState === 'resolving' && computerPlayedCard && (
+        {roundState === 'resolving' && computerPlayedCards.length > 0 && (
           <div className="absolute bottom-4 bg-slate-900/80 px-6 py-2 rounded-full border border-slate-700 animate-pop-in">
             <span className="text-white font-bold">{roundResultText}</span>
           </div>
@@ -361,21 +484,24 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
               key={card.id} 
               onClick={() => {
                 if (roundState === 'playing') {
-                  setSelectedCard(card);
-                  handlePlayCard(card); // Instantly play for now
+                  if (selectedCards.some(sc => sc.id === card.id)) {
+                     setSelectedCards(selectedCards.filter(sc => sc.id !== card.id));
+                  } else {
+                     setSelectedCards([...selectedCards, card]);
+                  }
                 }
               }}
               className={`playing-card ${card.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'} 
-                         ${selectedCard?.id === card.id ? 'selected' : ''} 
-                         ${roundState !== 'playing' ? 'disabled' : ''}`}
+                         ${selectedCards.some(sc => sc.id === card.id) ? 'selected ring-4 ring-purple-500 transform -translate-y-4' : ''} 
+                         ${roundState !== 'playing' ? 'disabled' : ''} transition-all duration-200`}
             >
               <div className="card-type text-left w-full mb-2">
                 {card.type === 'POWER_UP' ? (
                   <span className="flex items-center gap-1 text-amber-500"><Zap size={12}/> Power-Up</span>
                 ) : 'Concept'}
               </div>
-              <div className="card-title">{card.name}</div>
-              <p className="text-xs text-slate-400 mt-2 leading-tight flex-1">
+              <div className="card-title line-clamp-2" title={card.name}>{card.name}</div>
+              <p className="text-xs text-slate-400 mt-2 leading-tight flex-1 line-clamp-4" title={card.description}>
                 {card.description}
               </p>
             </div>

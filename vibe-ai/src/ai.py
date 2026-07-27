@@ -133,10 +133,10 @@ async def start_transcript_generation_task(job_id: str, file: str, approval_data
         print("Generating transcript from audio...")
         transcript = await transcription_service.transcribe(file, approval_data.modelSize, approval_data.language)
         del transcript["text"]
-        # Upload transcript to Google Cloud Storage
+        # Upload transcript to MongoDB GridFS (permanent and compressed)
         run_id = str(uuid.uuid4())[:8]  # Use first 8 characters of UUID for uniqueness
         transcript_file_name = f"transcripts/{job_id}_{run_id}_transcript.json"
-        transcript_file_url = await storage_service.upload_json_content(transcript, transcript_file_name)
+        transcript_file_url = await storage_service.upload_json_content(transcript, transcript_file_name, is_temporary=False, compress=True)
         if not transcript_file_url:
             # Fallback to local storage
             temp_dir = os.path.join(os.path.dirname(__file__), "temp_audio")

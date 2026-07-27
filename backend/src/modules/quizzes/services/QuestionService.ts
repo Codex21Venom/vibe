@@ -488,7 +488,7 @@ ${courseContextBlock}
         `;
 
         const GEMINI_API_KEY = aiConfig.GEMINI_API_KEY;
-        const GEMINI_MODEL = aiConfig.GEMINI_MODEL || 'gemini-2.5-flash';
+        const GEMINI_MODEL = aiConfig.GEMINI_MODEL || 'gemini-3.6-flash';
 
         if (!GEMINI_API_KEY) {
           throw new BadRequestError('Failed to find api key, try again!');

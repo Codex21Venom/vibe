@@ -191,6 +191,24 @@ async def get_temp_file(file_id: str):
         obj_id = ObjectId(file_id)
         grid_out = await storage.fs.open_download_stream(obj_id)
         
+        content_type = grid_out.metadata.get("contentType", "application/octet-stream") if grid_out.metadata else "application/octet-stream"
+        
+        if content_type == "application/gzip":
+            import gzip
+            content_bytes = await grid_out.read()
+            decompressed_bytes = gzip.decompress(content_bytes)
+            
+            async def single_chunk_generator():
+                yield decompressed_bytes
+                
+            return StreamingResponse(
+                single_chunk_generator(),
+                media_type="application/json",
+                headers={
+                    "Content-Disposition": f'inline; filename="{grid_out.filename}.json"'
+                }
+            )
+
         async def file_generator():
             while True:
                 chunk = await grid_out.readchunk()
@@ -198,8 +216,6 @@ async def get_temp_file(file_id: str):
                     break
                 yield chunk
                 
-        content_type = grid_out.metadata.get("contentType", "application/octet-stream") if grid_out.metadata else "application/octet-stream"
-        
         return StreamingResponse(
             file_generator(), 
             media_type=content_type,
@@ -209,5 +225,26 @@ async def get_temp_file(file_id: str):
         )
     except gridfs.errors.NoFile:
         raise HTTPException(status_code=404, detail="File not found or has expired")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{jobId}/audio", response_model=JobResponse)
+async def delete_job_audio(jobId: str):
+    """Delete the temporary audio file for a job"""
+    storage = MongoStorageService()
+    try:
+        # Search for files with filename like 'audio/{jobId}_%'
+        cursor = storage.db.fs.files.find({"filename": {"$regex": f"^audio/{jobId}"}})
+        files = await cursor.to_list(length=100)
+        
+        deleted_count = 0
+        for file in files:
+            await storage.fs.delete(file["_id"])
+            deleted_count += 1
+            
+        if deleted_count == 0:
+            return JobResponse(message=f"No audio files found for job {jobId}", jobId=jobId)
+            
+        return JobResponse(message=f"Deleted {deleted_count} audio files for job {jobId}", jobId=jobId)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

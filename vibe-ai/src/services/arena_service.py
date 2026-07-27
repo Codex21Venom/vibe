@@ -43,6 +43,12 @@ class ArenaService:
         prompt_text = (
             f"Based on the course '{request.course_name}' and specifically the following completed topics: "
             f"{', '.join(request.completed_topics)}.\n\n"
+        )
+        
+        if request.transcript_text:
+            prompt_text += f"Here is the course transcript for context to generate highly accurate questions based on what was taught:\n{request.transcript_text}\n\n"
+
+        prompt_text += (
             f"Create a {request.difficulty} difficulty question or scenario. "
             "The 'correct_cards' should be the concepts required to answer the question or solve the scenario. "
             "The 'distractor_cards' should be other plausible concepts from the completed topics that are incorrect for this specific scenario. "

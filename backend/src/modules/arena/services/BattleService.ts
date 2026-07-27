@@ -12,6 +12,8 @@ import { STUDENT_QUESTION_TYPES } from '#root/modules/studentQuestions/types.js'
 import { ProgressRepository } from '#shared/database/providers/mongo/repositories/ProgressRepository.js';
 import { EnrollmentRepository } from '#shared/database/providers/mongo/repositories/EnrollmentRepository.js';
 import { SegmentContextProvider } from '#root/modules/studentQuestions/services/context/SegmentContextProvider.js';
+import { ItemRepository } from '#shared/database/providers/mongo/repositories/ItemRepository.js';
+import { COURSES_TYPES } from '#root/modules/courses/types.js';
 
 @injectable()
 export class BattleService {
@@ -22,6 +24,7 @@ export class BattleService {
     @inject(QUIZZES_TYPES.QuestionRepo) private readonly questionRepo: QuestionRepository,
     @inject(USERS_TYPES.ProgressRepo) private readonly progressRepo: ProgressRepository,
     @inject(USERS_TYPES.EnrollmentRepo) private readonly enrollmentRepo: EnrollmentRepository,
+    @inject(COURSES_TYPES.ItemRepo) private readonly itemRepo: ItemRepository,
     @inject(STUDENT_QUESTION_TYPES.SegmentContextProvider) private readonly segmentContextProvider: SegmentContextProvider
   ) {}
 
@@ -62,56 +65,9 @@ export class BattleService {
     let questionData;
     let usedPreGenerated = false;
 
-    try {
-      const questionBanks = await this.questionBankRepo.getByCourseId(course._id?.toString() || battle.courseId.toString());
-      let allQuestionIds: string[] = [];
-      if (questionBanks && questionBanks.length > 0) {
-        questionBanks.forEach(bank => {
-          if (bank.questions) {
-            allQuestionIds.push(...bank.questions.map((q: any) => q.toString()));
-          }
-        });
-      }
-
-      if (allQuestionIds.length > 0) {
-        // Shuffle question ids
-        allQuestionIds.sort(() => Math.random() - 0.5);
-        // Try up to 10 random questions to find a suitable one (e.g. SELECT_ONE_IN_LOT)
-        for (const randomId of allQuestionIds.slice(0, 10)) {
-          const q = await this.questionRepo.getById(randomId);
-          if (q && q.type === 'SELECT_ONE_IN_LOT') {
-            const sol = q as any;
-            const correct = sol.correctLotItem;
-            const incorrect = sol.incorrectLotItems || [];
-
-            const optionsObj = [
-              { text: correct.text, isCorrect: true, explanation: correct.explaination }
-            ];
-            incorrect.forEach((item: any) => {
-              optionsObj.push({ text: item.text, isCorrect: false, explanation: item.explaination });
-            });
-
-            // Shuffle options
-            optionsObj.sort(() => Math.random() - 0.5);
-            const correctIndex = optionsObj.findIndex(o => o.isCorrect);
-
-            questionData = {
-              question: sol.text,
-              options: optionsObj.map(o => o.text),
-              correctAnswerIndex: correctIndex,
-              explanation: optionsObj[correctIndex].explanation || "Correct!"
-            };
-            usedPreGenerated = true;
-            break;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Failed to fetch pre-generated questions:", e);
-    }
-
     if (!usedPreGenerated) {
       let segmentContext = '';
+      let completedTopics: string[] = [];
       try {
         // Find the user's enrollment to get the active courseVersionId
         const enrollments = await this.enrollmentRepo.getAllEnrollments(battle.userId.toString());
@@ -128,78 +84,134 @@ export class BattleService {
           );
 
           if (completedItems && completedItems.length > 0) {
-            // Pick a random completed item
-            const randomItemId = completedItems[Math.floor(Math.random() * completedItems.length)];
-            
-            // Get context for this item using SegmentContextProvider
-            const ctx = await this.segmentContextProvider.getContext({
-              segmentId: randomItemId,
-              courseVersionId: versionIdStr,
-            });
+            // Filter only VIDEO items to prevent quiz metadata from polluting the AI prompt
+            const videoItems = [];
+            for (const itemId of completedItems) {
+               try {
+                 const itemEntity = await this.itemRepo.readItemById(itemId);
+                 if (itemEntity && itemEntity.type === 'VIDEO') {
+                    videoItems.push({ id: itemId, name: itemEntity.name || 'Unknown Topic' });
+                 }
+               } catch (err) {
+                 // ignore missing items
+               }
+            }
 
-            if (ctx) {
-              segmentContext = ctx;
+            if (videoItems.length > 0) {
+              // Pick up to 3 random completed VIDEO items to form a broader topic context
+              const shuffledItems = [...videoItems].sort(() => 0.5 - Math.random());
+              const selectedItems = shuffledItems.slice(0, Math.min(3, shuffledItems.length));
+              
+              completedTopics = selectedItems.map(item => item.name);
+            
+              for (const item of selectedItems) {
+                const ctx = await this.segmentContextProvider.getContext({
+                  segmentId: item.id,
+                  courseVersionId: versionIdStr,
+                });
+                if (ctx) {
+                  segmentContext += `\nTopic '${item.name}' Context:\n${ctx}\n`;
+                }
+              }
             }
           }
         }
+
       } catch (err) {
         console.error("Failed to fetch transcript context for arena question:", err);
       }
 
-      const prompt = `You are the AI opponent in a competitive strategy card game called Knowledge Clash.
-The player is studying the course: "${course.name}".
+      // If segmentContext is too short (likely just mocked metadata), fall back heavily on course description
+      const finalContextText = segmentContext.length > 150 
+          ? `COURSE CONTEXT (TRANSCRIPT/LESSON INFO):\n${segmentContext}` 
+          : `COURSE DESCRIPTION:\n"${course.description}"\n\n(Use this general course description to infer the subject matter)`;
 
-CRITICAL RULE: You MUST NOT use any external knowledge. Every single fact, concept, or answer you generate must be explicitly tied to the provided course context.
-Your goal is to generate a challenge question or scenario based ONLY on the concepts found in this context.
-Do not ask simple trivia. Ask a scenario or relationship question.
+      const prompt = `You are the AI opponent in a competitive, fast-paced strategy card game called Knowledge Clash.
+The player is studying the educational course: "${course.name}".
 
-${segmentContext ? `COURSE CONTEXT (TRANSCRIPT/LESSON INFO):\n${segmentContext}` : `COURSE DESCRIPTION:\n"${course.description}"`}
+CRITICAL RULE 1: You MUST NOT use any external knowledge. Every single fact, concept, or answer you generate must be explicitly tied to the provided course context.
+CRITICAL RULE 2: Keep it PUNCHY and CONCISE! This is a fast-paced game with a 15-second timer. The scenario/question should be short (1-2 sentences max). Card names must be 1-4 words max. Explanations must be ultra-short (1 short sentence max).
+CRITICAL RULE 3: IGNORE COURSE STRUCTURE METADATA. Do NOT generate questions about "video segments", "quizzes", "modules", or "transcripts". You must generate questions about the actual EDUCATIONAL SUBJECT MATTER being taught in the course!
 
-Output the result strictly as a JSON object with the following format:
-{
-  "question": "The question or scenario text",
-  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-  "correctAnswerIndex": 0,
-  "explanation": "Explanation of the correct answer"
-}
-`;
+${finalContextText}
+
+Based on the course '${course.name}' and specifically the following completed topics: ${completedTopics.length > 0 ? completedTopics.join(', ') : 'General Course Context'}. Create an intermediate difficulty question or scenario.
+
+You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts required to solve the scenario, and others must be highly plausible but incorrect distractor concepts. Each card must include a very brief explanation of why it is correct or incorrect.`;
 
       try {
         if (!aiConfig.GEMINI_API_KEY) {
            throw new Error("No API key");
         }
-        const { GoogleGenAI } = await import('@google/genai');
+        const { GoogleGenAI, Type } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey: aiConfig.GEMINI_API_KEY as string });
 
+        const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                promptText: { type: Type.STRING, description: "The generated scenario or question" },
+                deck: {
+                    type: Type.ARRAY,
+                    description: "An array of exactly 5 cards mixing correct answers and distractor concepts.",
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING, description: "Concept Name" },
+                            explanation: { type: Type.STRING, description: "Why this concept is correct or incorrect for the scenario" },
+                            isCorrect: { type: Type.BOOLEAN, description: "True if this concept is part of the correct answer, False if it is a distractor" }
+                        },
+                        required: ["name", "explanation", "isCorrect"]
+                    }
+                },
+                explanation: { type: Type.STRING, description: "Global learning tip for the scenario" }
+            },
+            required: ["promptText", "deck", "explanation"]
+        };
+
         const response = await ai.models.generateContent({
-            model: aiConfig.GEMINI_MODEL || 'gemini-2.5-flash',
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
+                responseSchema: responseSchema
             }
         });
         
         const rawText = response.text || '';
         const jsonText = rawText.replace(/```json\n?|\n?```/g, '').trim();
+        console.log("Raw JSON Text from AI:", jsonText);
         questionData = JSON.parse(jsonText);
-      } catch (e) {
+        console.log("Parsed Question Data:", questionData);
+      } catch (e: any) {
         console.error("AI Generation failed:", e);
-        // Fallback if AI fails
-        questionData = {
-          question: "Fallback Question: What is a core concept of this course?",
-          options: ["CoreConcept", "IrrelevantConcept", "WrongIdea", "AnotherWrong"],
-          correctAnswerIndex: 0,
-          explanation: "This is a fallback question because the AI generation failed."
-        };
+        throw new Error(`AI Generation Error: ${e?.message || String(e)}`);
       }
     }
 
+    let deck = questionData.deck || questionData.cards || questionData.correctCards || [];
+    
+    if (!deck || deck.length === 0) {
+        throw new Error("AI generated an empty deck or failed to map deck data.");
+    }
+
+    const finalDeck = deck.map((c: any, index: number) => ({
+        id: `c${index}`,
+        name: c.name || "Unknown Concept",
+        type: 'CONCEPT_ANSWER',
+        description: c.explanation || "No explanation provided",
+        isCorrect: c.isCorrect || false
+    })).sort(() => Math.random() - 0.5);
+
+    const sizedDeck = finalDeck.slice(0, 5);
+    
+    const correctConcepts = sizedDeck.filter((c: any) => c.isCorrect).map((c: any) => c.name);
+
     const question = {
         questionId: new Date().getTime().toString(),
-        text: questionData.question,
-        options: questionData.options,
-        correctAnswerIndex: questionData.correctAnswerIndex,
-        explanation: questionData.explanation
+        text: questionData.promptText || questionData.question || "Unknown scenario",
+        correctConcepts: correctConcepts,
+        deck: sizedDeck,
+        explanation: questionData.explanation || "No explanation provided"
     };
 
     battle.currentQuestion = question;
@@ -220,22 +232,55 @@ Output the result strictly as a JSON object with the following format:
 
     const correctConcepts: string[] = currentQuestion.correctConcepts || [];
     
-    // Simple evaluation: check how many correct cards were played
+    // Evaluate combo logic
     let correctCount = 0;
+    let hasMistake = false;
+    
     for (const card of submittedCards) {
       if (correctConcepts.includes(card)) {
         correctCount++;
+      } else {
+        hasMistake = true;
       }
+    }
+
+    let multiplier = 1.0;
+    let comboName = "Single Strike";
+    
+    // If any mistake, combo breaks
+    if (hasMistake) {
+        multiplier = 0;
+        comboName = "Combo Broken!";
+    } else if (correctCount > 1) {
+        if (correctCount === 2) {
+            multiplier = 1.5;
+            comboName = "Pair Combo!";
+        } else if (correctCount === 3) {
+            multiplier = 2.0;
+            comboName = "Three of a Kind!";
+        } else if (correctCount === 4) {
+            multiplier = 2.5;
+            comboName = "Four of a Kind!";
+        } else if (correctCount >= 5) {
+            multiplier = 3.0;
+            comboName = "Full House Mastery!";
+        }
+    } else if (correctCount === 0) {
+        multiplier = 0;
+        comboName = "Miss";
     }
 
     const accuracy = correctConcepts.length > 0 ? (correctCount / correctConcepts.length) : 0;
     
-    // Generate KP (Knowledge Power) based on accuracy
-    const kpEarned = Math.round(accuracy * 50); // Max 50 KP per correct full answer
+    // Base KP earned
+    let kpEarned = Math.round(accuracy * 50); 
+    // Apply multiplier
+    kpEarned = Math.round(kpEarned * multiplier);
     
-    // Penalize HP for mistakes (cards played that weren't correct)
+    // Base damage is handled by frontend, but we can return multiplier to frontend
+    // Penalize HP for mistakes
     const mistakes = submittedCards.length - correctCount;
-    const hpLost = mistakes * 5;
+    const hpLost = hasMistake ? (mistakes * 5 + 5) : 0; // Extra flat penalty if combo broke
 
     battle.playerKp += kpEarned;
     battle.playerHp = Math.max(0, battle.playerHp - hpLost);
@@ -248,10 +293,19 @@ Output the result strictly as a JSON object with the following format:
     }
 
     return {
-      accuracy,
+      success: true,
+      correctCount,
+      hasMistake,
+      comboName,
+      multiplier,
       kpEarned,
       hpLost,
-      battleState: battle
+      battle: {
+        playerHp: battle.playerHp,
+        playerKp: battle.playerKp,
+        computerHp: battle.aiHp,
+        isActive: battle.isActive
+      }
     };
   }
 

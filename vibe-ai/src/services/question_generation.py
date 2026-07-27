@@ -267,9 +267,23 @@ class QuestionGenerationService:
                         # (ToolStrategy bakes the schema into the tool definition)
                         agent = self._build_agent(model, schema, system_prompt)
 
-                        result = await agent.ainvoke({
-                            "messages": [{"role": "user", "content": prompt_text}]
-                        })
+                        max_api_retries = 3
+                        result = None
+                        for attempt in range(max_api_retries):
+                            try:
+                                result = await agent.ainvoke({
+                                    "messages": [{"role": "user", "content": prompt_text}]
+                                })
+                                break
+                            except Exception as invoke_err:
+                                if "429" in str(invoke_err) or "RESOURCE_EXHAUSTED" in str(invoke_err):
+                                    if attempt < max_api_retries - 1:
+                                        print(f"API Rate limit hit (429). Retrying attempt {attempt+1}/{max_api_retries} in 35 seconds...")
+                                        await asyncio.sleep(35)
+                                    else:
+                                        raise invoke_err
+                                else:
+                                    raise invoke_err
 
                         questions = self._unwrap_questions(
                             result["structured_response"], count

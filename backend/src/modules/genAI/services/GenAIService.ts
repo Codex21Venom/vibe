@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import zlib from 'zlib';
 import { WebhookService } from './WebhookService.js';
 import { GENAI_TYPES } from '../types.js';
 import { JobBody } from '../classes/validators/GenAIValidators.js';
@@ -133,26 +134,29 @@ export class GenAIService extends BaseService {
             'Invalid file type. Please upload an audio file.',
           );
         }
-        // store on buckets
-        const fileName = await this.cloudStorageService.uploadAudio(
-          audio,
+        
+        const fileName = `${jobId}.${audio.mimetype.split('/')[1]}`;
+        const gridFsId = await this.genAIRepository.saveAudioToGridFS(
           jobId,
+          fileName,
+          audio.buffer,
+          audio.mimetype
         );
+
         await this.genAIRepository.createTaskDataWithAudio(
           jobId,
           fileName,
-          `https://storage.googleapis.com/${storageConfig.googleCloud.aiServerBucketName}/${fileName}`,
+          `mongodb://gridfs/${gridFsId}`,
           session,
         );
       } else if (jobData.transcript) {
-        const fileName = await this.cloudStorageService.uploadTranscript(
-          jobData.transcript,
-          jobId,
-        );
+        const compressedTranscript = zlib.deflateSync(JSON.stringify(jobData.transcript)).toString('base64');
+        const fileName = `${jobId}.json`;
+        
         await this.genAIRepository.createTaskDataWithTranscript(
           jobId,
           fileName,
-          `https://storage.googleapis.com/${storageConfig.googleCloud.aiServerBucketName}/${fileName}`,
+          compressedTranscript,
           session,
         );
       } else {
@@ -643,14 +647,12 @@ export class GenAIService extends BaseService {
         newFileName = fileName.replace(/\.json$/, '_updated.json');
       }
       const data = JSON.stringify(transcript);
-      await this.storage
-        .bucket(appConfig.firebase.storageBucket)
-        .file(newFileName)
-        .save(Buffer.from(data), { contentType: 'application/json' });
+      const compressedData = zlib.deflateSync(data).toString('base64');
+      
       task.transcriptGeneration[index].fileName = newFileName;
-      task.transcriptGeneration[
-        index
-      ].fileUrl = `https://storage.googleapis.com/${appConfig.firebase.storageBucket}/${newFileName}`;
+      task.transcriptGeneration[index].fileUrl = '';
+      task.transcriptGeneration[index].compressedData = compressedData;
+      
       await this.genAIRepository.updateTaskData(jobId, task, session);
     });
   }
@@ -1663,6 +1665,15 @@ export class GenAIService extends BaseService {
         });
         await this.genAIRepository.updateTaskData(jobId, taskDAta, session);
         await this.genAIRepository.update(jobId, jobData, session);
+        
+        try {
+          const aiServerUrl = process.env.VIBE_AI_SERVER_URL || 'http://127.0.0.1:8017';
+          await axios.delete(`${aiServerUrl}/jobs/${jobId}/audio`);
+          console.log(`Cleaned up temp audio for job ${jobId}`);
+        } catch (cleanupErr) {
+          console.error(`Failed to cleanup temp audio for job ${jobId}:`, cleanupErr.message);
+        }
+
         return {
           message:
             'Video items, Quiz items, and Question banks for segments generated successfully from video.',

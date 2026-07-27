@@ -195,3 +195,21 @@ class SegmentResponse(BaseModel):
     complete_segments: Dict[str, str]
     segments: List[float]
     segment_count: int
+
+class ArenaQuestionRequest(BaseModel):
+    learnerId: Optional[str] = None
+    course_name: str
+    completed_topics: List[str]
+    difficulty: str
+    initial_hp: Optional[int] = 100
+    transcript_text: Optional[str] = None
+
+class ArenaCard(BaseModel):
+    concept: str
+    explanation: str
+
+class ArenaQuestionResponse(BaseModel):
+    question: str
+    correct_cards: List[ArenaCard]
+    distractor_cards: List[ArenaCard]
+
