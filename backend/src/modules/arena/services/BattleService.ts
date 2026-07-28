@@ -28,13 +28,14 @@ export class BattleService {
     @inject(STUDENT_QUESTION_TYPES.SegmentContextProvider) private readonly segmentContextProvider: SegmentContextProvider
   ) {}
 
-  private async getUserCourseProgress(userId: string, courseId: string): Promise<{ progressPercent: number; courseEnrollment: any }> {
+  private async getUserCourseProgress(userId: string, courseId: string): Promise<{ progressPercent: number; courseEnrollment: any; completedItemIds: string[] }> {
     const enrollments = await this.enrollmentRepo.getAllEnrollments(userId.toString());
     const courseEnrollment = enrollments.find(
       e => (e.courseId?.toString() === courseId || (e as any).course?.toString() === courseId) && e.status === 'ACTIVE'
     );
 
     let progressPercent = Number(courseEnrollment?.percentCompleted ?? 0);
+    let completedItemIds: string[] = [];
 
     try {
       const userObjId = new (await import('mongodb')).ObjectId(userId);
@@ -53,6 +54,8 @@ export class BattleService {
         courseId: { $in: [courseObjId, courseId] },
         endTime: { $exists: true, $ne: null }
       });
+      
+      completedItemIds = watchTimeDistinct.map((id: any) => id.toString());
 
       const completedCount = Math.max(completedDocs.length, watchTimeDistinct.length);
 
@@ -79,7 +82,7 @@ export class BattleService {
       console.error('Error computing course progress in BattleService:', err);
     }
 
-    return { progressPercent, courseEnrollment };
+    return { progressPercent, courseEnrollment, completedItemIds };
   }
 
   public async startBattle(userId: string, courseId: string): Promise<BattleSession> {
@@ -118,7 +121,7 @@ export class BattleService {
       throw new Error('Battle not found or inactive');
     }
 
-    const { progressPercent, courseEnrollment } = await this.getUserCourseProgress(
+    const { progressPercent, courseEnrollment, completedItemIds } = await this.getUserCourseProgress(
       battle.userId.toString(),
       battle.courseId.toString()
     );
@@ -143,12 +146,8 @@ export class BattleService {
         if (courseEnrollment && courseEnrollment.courseVersionId) {
           const versionIdStr = courseEnrollment.courseVersionId.toString();
           
-          // Get completed items from ProgressRepository
-          const completedItems = await this.progressRepo.getCompletedItems(
-            battle.userId.toString(),
-            battle.courseId.toString(),
-            versionIdStr
-          );
+          // Use the exact completed items that contributed to the progress percent
+          const completedItems = completedItemIds;
 
           if (completedItems && completedItems.length > 0) {
             // Filter only VIDEO items to prevent quiz metadata from polluting the AI prompt

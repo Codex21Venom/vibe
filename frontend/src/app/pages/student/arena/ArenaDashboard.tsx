@@ -31,12 +31,12 @@ export default function ArenaDashboard() {
         const response = await apiClient.get<any[]>('/arena/courses');
         const validCourses = response.data.filter(c => c.courseName && c.courseName !== "Unknown Course" && c.courseName.trim() !== "");
         
-        // Merge progress from enrollments
+        // Strictly use real-time progress from enrollments without fallback
         const coursesWithProgress = validCourses.map(course => {
           const enrollment = enrollments.find((e: any) => e.courseId === course.courseId || e.course?.id === course.courseId);
           return {
             ...course,
-            percentCompleted: Math.max(enrollment?.percentCompleted || 0, course.progressPercent || 0)
+            percentCompleted: enrollment?.percentCompleted ?? course.progressPercent ?? 0
           };
         });
         

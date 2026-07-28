@@ -51,26 +51,9 @@ export class ArenaService {
 
         completedCount = Math.max(completedDocs.length, watchTimeDistinct.length);
 
-        if (versionIdStr) {
-          const versionCol = await this.arenaRepo.getCollection('newCourseVersion');
-          const versionDoc = await versionCol.findOne({
-            _id: new (await import('mongodb')).ObjectId(versionIdStr)
-          });
-          if (versionDoc && Array.isArray(versionDoc.itemsGroup)) {
-            totalCount = versionDoc.itemsGroup.reduce((acc: number, group: any) => {
-              return acc + (Array.isArray(group.items) ? group.items.length : 0);
-            }, 0);
-          }
-        }
-
         const livePercent = Number(enrollment.percentCompleted ?? 0);
-        if (totalCount > 0) {
-          progressPercent = Math.max(livePercent, Math.min(100, Math.round((completedCount / totalCount) * 100)));
-        } else if (completedCount > 0) {
-          progressPercent = Math.max(livePercent, Math.min(100, completedCount * 25));
-        } else {
-          progressPercent = livePercent;
-        }
+        totalCount = enrollment.contentCounts?.totalItems || 0;
+        progressPercent = livePercent;
       } catch (err) {
         console.error('Error calculating progress percent for arena:', err);
       }
