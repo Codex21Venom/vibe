@@ -8,15 +8,15 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 import pymongo
 
 class MongoStorageService:
-    """MongoDB GridFS storage service with TTL support"""
+    """MongoDB GridFS storage service with TTL and local fallback support"""
     
     def __init__(self):
-        # Use existing MongoDB URI or fallback to localhost
-        self.mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/vibe')
-        self.db_name = os.getenv('MONGO_DB_NAME', 'vibe')
+        # Use DB_URL or MONGO_URI from environment, fallback to localhost
+        self.mongo_uri = os.getenv('MONGO_URI') or os.getenv('DB_URL') or 'mongodb://localhost:27017/vibe'
+        self.db_name = os.getenv('MONGO_DB_NAME') or os.getenv('DB_NAME') or 'vibe'
         
-        # Instantiate a new Motor client per instance (required since tasks run in different threads/event loops)
-        self.client = AsyncIOMotorClient(self.mongo_uri)
+        # Instantiate a new Motor client per instance
+        self.client = AsyncIOMotorClient(self.mongo_uri, serverSelectionTimeoutMS=3000)
             
         self.db = self.client[self.db_name]
         self.fs = AsyncIOMotorGridFSBucket(self.db)
@@ -28,7 +28,6 @@ class MongoStorageService:
     async def _init_indexes(self):
         """Create TTL indexes on fs.files and fs.chunks to automatically delete expired files."""
         try:
-            # 86400 seconds = 24 hours
             ttl_seconds = int(os.getenv('TEMP_FILES_TTL_SECONDS', 86400))
             
             await self.db.fs.files.create_index(
@@ -41,11 +40,12 @@ class MongoStorageService:
             )
             print(f"MongoDB GridFS TTL indexes initialized ({ttl_seconds}s)")
         except Exception as e:
-            print(f"Error initializing MongoDB GridFS indexes: {e}")
+            print(f"Notice: MongoDB GridFS TTL index init skipped (using local mode/fallback): {e}")
 
     async def upload_file(self, file_path: str, destination_name: str, content_type: str = 'application/octet-stream') -> Optional[str]:
         """
         Upload a file to MongoDB GridFS with TTL.
+        Fallbacks to local temp storage if MongoDB is offline.
         """
         print(f"MongoStorage upload_file called: file_path={file_path}, destination_name={destination_name}")
         
@@ -61,29 +61,35 @@ class MongoStorageService:
                     metadata={"contentType": content_type}
                 )
             
-            # Add createdAt field for TTL index
             current_time = datetime.now(timezone.utc)
             await self.db.fs.files.update_one(
                 {"_id": file_id},
                 {"$set": {"createdAt": current_time}}
             )
-            
-            # Update all chunks to also have createdAt for TTL index
             await self.db.fs.chunks.update_many(
                 {"files_id": file_id},
                 {"$set": {"createdAt": current_time}}
             )
             
             print(f"File uploaded successfully to MongoDB GridFS. File ID: {file_id}")
-            
-            # Return the endpoint URL to access the file
             public_url = f"{self.server_url}/jobs/temp_files/{str(file_id)}"
-            print(f"Public URL generated: {public_url}")
             return public_url
             
         except Exception as e:
-            print(f"Error uploading file to MongoDB: {str(e)}")
-            return None
+            print(f"MongoDB GridFS upload unavailable ({e}), using local file fallback...")
+            try:
+                temp_storage_dir = Path(__file__).parent.parent / "temp_storage"
+                os.makedirs(temp_storage_dir, exist_ok=True)
+                clean_name = destination_name.replace("/", "_")
+                local_file_path = temp_storage_dir / clean_name
+                import shutil
+                shutil.copy2(file_path, local_file_path)
+                public_url = f"{self.server_url}/jobs/temp_files/local_{clean_name}"
+                print(f"Saved file to local storage fallback: {public_url}")
+                return public_url
+            except Exception as local_err:
+                print(f"Error saving file to local storage fallback: {local_err}")
+                return None
 
     async def upload_text_content(self, content: str, destination_name: str, content_type: str = 'text/plain', is_temporary: bool = True, compress: bool = False) -> Optional[str]:
         """
@@ -91,7 +97,6 @@ class MongoStorageService:
         Optionally compress it and set whether it is temporary (TTL).
         """
         try:
-            # Convert text to bytes
             content_bytes = content.encode('utf-8')
             
             if compress:
@@ -100,7 +105,7 @@ class MongoStorageService:
                 content_bytes = gzip.compress(content_bytes)
                 compressed_size = len(content_bytes)
                 content_type = 'application/gzip'
-                print(f"✅ Compression successful! Size reduced from {original_size} to {compressed_size} bytes ({(1 - compressed_size/original_size)*100:.1f}% reduction).")
+                print(f"✅ Compression successful! Size reduced from {original_size} to {compressed_size} bytes.")
             
             file_id = await self.fs.upload_from_stream(
                 destination_name,
@@ -123,8 +128,20 @@ class MongoStorageService:
             return public_url
             
         except Exception as e:
-            print(f"Error uploading text content to MongoDB: {str(e)}")
-            return None
+            print(f"MongoDB GridFS text upload unavailable ({e}), using local file fallback...")
+            try:
+                temp_storage_dir = Path(__file__).parent.parent / "temp_storage"
+                os.makedirs(temp_storage_dir, exist_ok=True)
+                clean_name = destination_name.replace("/", "_")
+                local_file_path = temp_storage_dir / clean_name
+                with open(local_file_path, 'wb') as f:
+                    f.write(content_bytes)
+                public_url = f"{self.server_url}/jobs/temp_files/local_{clean_name}"
+                print(f"Saved text to local storage fallback: {public_url}")
+                return public_url
+            except Exception as local_err:
+                print(f"Error saving text to local storage fallback: {local_err}")
+                return None
 
     async def upload_json_content(self, data: Any, destination_name: str, is_temporary: bool = True, compress: bool = False) -> Optional[str]:
         """

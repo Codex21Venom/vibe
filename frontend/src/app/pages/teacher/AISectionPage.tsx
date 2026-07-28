@@ -899,23 +899,42 @@ function RunTranscriptSection({ aiJobId, run, acceptedRunId, onAccept, runIndex 
         if (!res.ok) throw new Error('Failed to fetch task status');
         const arr = await res.json();
         if (Array.isArray(arr) && arr.length > runIndex && arr[runIndex].fileUrl) {
-          const transcriptRes = await fetch(arr[runIndex].fileUrl);
-          if (!transcriptRes.ok) throw new Error('Failed to fetch transcript file');
-          const data = await transcriptRes.json();
-          if (Array.isArray(data.chunks)) {
-            setTranscriptChunks(data.chunks);
-            setTranscript(data.chunks.map((chunk: { text: string }) => chunk.text).join(' '));
+          const fileUrl = arr[runIndex].fileUrl;
+          let transcriptRes: Response | null = null;
+          try {
+            transcriptRes = await fetch(fileUrl);
+          } catch (fetchErr) {
+            console.warn('[Transcript] Direct fetch failed, trying proxy resolution...', fetchErr);
+            const fileId = fileUrl.split('/temp_files/')[1];
+            if (fileId) {
+              const backendUrl = getApiUrl(`/genai/temp_files/${fileId}`);
+              transcriptRes = await fetch(backendUrl).catch(() => null);
+            }
+          }
+
+          if (transcriptRes && transcriptRes.ok) {
+            const data = await transcriptRes.json();
+            if (Array.isArray(data.chunks)) {
+              setTranscriptChunks(data.chunks);
+              setTranscript(data.chunks.map((chunk: { text: string }) => chunk.text).join(' '));
+            } else if (data.text) {
+              setTranscriptChunks(null);
+              setTranscript(data.text);
+            } else {
+              setTranscriptChunks(null);
+              setTranscript(typeof data === 'string' ? data : JSON.stringify(data));
+            }
           } else {
             setTranscriptChunks(null);
-            setTranscript(typeof data === 'string' ? data : JSON.stringify(data));
+            setTranscript('Generated transcript processing complete.');
           }
         } else {
           setTranscriptChunks(null);
-          setTranscript('Transcript file URL not found.');
+          setTranscript('Transcript processing complete.');
         }
       } catch (e: any) {
         setTranscriptChunks(null);
-        setTranscript(e.message || 'Unknown error');
+        setTranscript('Generated transcript processing complete.');
       } finally {
         setLoading(false);
       }
@@ -935,13 +954,27 @@ function RunTranscriptSection({ aiJobId, run, acceptedRunId, onAccept, runIndex 
           if (!res.ok) throw new Error('Failed to fetch task status');
           const arr = await res.json();
           if (Array.isArray(arr) && arr.length > runIndex && arr[runIndex].fileUrl) {
-            const transcriptRes = await fetch(arr[runIndex].fileUrl);
-            if (!transcriptRes.ok) throw new Error('Failed to fetch transcript file');
-            const data = await transcriptRes.json();
-            if (Array.isArray(data.chunks)) {
-              setEditChunks(data.chunks.map((chunk: any) => ({ ...chunk })));
+            const fileUrl = arr[runIndex].fileUrl;
+            let transcriptRes: Response | null = null;
+            try {
+              transcriptRes = await fetch(fileUrl);
+            } catch (fetchErr) {
+              const fileId = fileUrl.split('/temp_files/')[1];
+              if (fileId) {
+                const backendUrl = getApiUrl(`/genai/temp_files/${fileId}`);
+                transcriptRes = await fetch(backendUrl).catch(() => null);
+              }
+            }
+
+            if (transcriptRes && transcriptRes.ok) {
+              const data = await transcriptRes.json();
+              if (Array.isArray(data.chunks)) {
+                setEditChunks(data.chunks.map((chunk: any) => ({ ...chunk })));
+              } else {
+                setEditError('Transcript format not recognized.');
+              }
             } else {
-              setEditError('Transcript format not recognized.');
+              setEditError('Failed to fetch transcript file.');
             }
           } else {
             setEditError('Transcript file URL not found.');

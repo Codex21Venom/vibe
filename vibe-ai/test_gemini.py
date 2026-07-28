@@ -12,7 +12,7 @@ def test_gemini():
         
     try:
         model = ChatGoogleGenerativeAI(
-            model="gemini-3.6-flash",
+            model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
             google_api_key=api_key,
             temperature=0
         )

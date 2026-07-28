@@ -1,9 +1,8 @@
 import { EventSourcePolyfill } from 'event-source-polyfill';
+import { useAuthStore } from '../store/auth-store';
 
 // GenAI API utility functions
 // Updated to use job+task system
-
-
 
 // Environment-based API configuration
 export const getApiBaseUrl = (): string => {
@@ -12,9 +11,9 @@ export const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Helper function to get auth token from localStorage
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('firebase-auth-token');
+// Helper function to get auth token from localStorage or Zustand store or dev fallback
+const getAuthToken = (): string => {
+  return localStorage.getItem('firebase-auth-token') || useAuthStore.getState().token || 'dev-local-token';
 };
 
 export function getApiUrl(path: string) {

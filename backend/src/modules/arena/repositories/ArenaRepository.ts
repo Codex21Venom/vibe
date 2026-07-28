@@ -14,7 +14,7 @@ export class ArenaRepository {
   ) {
   }
 
-  private async getCollection<T>(name: string): Promise<Collection<T>> {
+  public async getCollection<T extends import('mongodb').Document = import('mongodb').Document>(name: string): Promise<Collection<T>> {
     return this.dbProvider.getCollection<T>(name);
   }
 

@@ -1,10 +1,11 @@
 import createFetchClient from 'openapi-fetch';
 import createClient from 'openapi-react-query';
 import type { paths } from '../types/schema';
+import { useAuthStore } from '../store/auth-store';
 
-// Helper function to get auth token from localStorage
+// Helper function to get auth token from localStorage or Zustand store
 const getAuthToken = (): string | null => {
-  return localStorage.getItem('firebase-auth-token');
+  return localStorage.getItem('firebase-auth-token') || useAuthStore.getState().token || null;
 };
 
 // Helper function to refresh token (will be imported from auth utils)
@@ -59,9 +60,8 @@ fetchClient.use({
       }
       try {
         const { auth: firebaseAuth } = await import('@/lib/firebase');
-        const firebaseUser = firebaseAuth.currentUser;
-        if (firebaseUser) {
-          const freshToken = await firebaseUser.getIdToken(true);
+        if (firebaseAuth && firebaseAuth.currentUser) {
+          const freshToken = await firebaseAuth.currentUser.getIdToken(true);
           localStorage.setItem('firebase-auth-token', freshToken);
           const retryRequest = request.clone();
           retryRequest.headers.set('Authorization', `Bearer ${freshToken}`);

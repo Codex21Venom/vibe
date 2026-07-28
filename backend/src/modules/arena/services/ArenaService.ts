@@ -24,13 +24,63 @@ export class ArenaService {
     const enrollments = await this.enrollmentRepo.getAllEnrollments(userId);
     const coursePromises = enrollments.map(async (enrollment: any) => {
       const courseIdStr = enrollment.courseId?.toString() || enrollment.course?.toString();
+      const versionIdStr = enrollment.courseVersionId?.toString();
       const course = await this.courseRepo.read(courseIdStr);
+
+      let progressPercent = 0;
+      let completedCount = 0;
+      let totalCount = 0;
+
+      try {
+        const userObjId = new (await import('mongodb')).ObjectId(userId);
+        const courseObjId = new (await import('mongodb')).ObjectId(courseIdStr);
+
+        const progressCol = await this.arenaRepo.getCollection('progress');
+        const completedDocs = await progressCol.find({
+          $or: [{ userId: userObjId }, { userId: userId }],
+          courseId: { $in: [courseObjId, courseIdStr] },
+          isCompleted: true
+        }).toArray();
+        
+        const watchTimeCol = await this.arenaRepo.getCollection('watchTime');
+        const watchTimeDistinct = await watchTimeCol.distinct('itemId', {
+          $or: [{ userId: userObjId }, { userId: userId }],
+          courseId: { $in: [courseObjId, courseIdStr] },
+          endTime: { $exists: true, $ne: null }
+        });
+
+        completedCount = Math.max(completedDocs.length, watchTimeDistinct.length);
+
+        if (versionIdStr) {
+          const versionCol = await this.arenaRepo.getCollection('newCourseVersion');
+          const versionDoc = await versionCol.findOne({
+            _id: new (await import('mongodb')).ObjectId(versionIdStr)
+          });
+          if (versionDoc && Array.isArray(versionDoc.itemsGroup)) {
+            totalCount = versionDoc.itemsGroup.reduce((acc: number, group: any) => {
+              return acc + (Array.isArray(group.items) ? group.items.length : 0);
+            }, 0);
+          }
+        }
+
+        if (totalCount > 0) {
+          progressPercent = Math.min(100, Math.round((completedCount / totalCount) * 100));
+        } else if (completedCount > 0) {
+          progressPercent = Math.min(100, completedCount * 25);
+        }
+      } catch (err) {
+        console.error('Error calculating progress percent for arena:', err);
+      }
+
       return {
         courseId: courseIdStr,
         courseName: course?.name || 'Unknown Course',
-        versionId: enrollment.courseVersionId?.toString(),
+        versionId: versionIdStr,
         role: enrollment.role,
-        status: enrollment.status
+        status: enrollment.status,
+        progressPercent: progressPercent,
+        completedCount: completedCount,
+        totalCount: totalCount
       };
     });
     return Promise.all(coursePromises);

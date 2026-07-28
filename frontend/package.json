@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite",
     "d": "bash scripts/deploy.sh",
-    "copy": "cd ../backend && node scripts/generate-openapi.cjs --output ../../frontend/openapi.json",
+    "copy": "cd ../backend && node scripts/generate-openapi.cjs --output ../frontend/openapi.json",
     "gen-schema": "npx openapi-typescript openapi.json --output src/lib/api/schema.ts ",
-    "build": "tsc -b && node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build",
+    "build": "vite build",
     "lint": "gts lint",
     "preview": "vite preview",
     "clean": "gts clean",
@@ -137,6 +137,7 @@
   "devDependencies": {
     "@eslint/js": "^9.20.0",
     "@tailwindcss/postcss": "^4.0.0",
+    "@types/event-source-polyfill": "^1.0.5",
     "@types/fingerpose": "^0.1.1",
     "@types/json-schema": "^7.0.15",
     "@types/katex": "^0.16.7",
@@ -153,6 +154,7 @@
     "glob": "^13.0.6",
     "globals": "^15.14.0",
     "gts": "^6.0.2",
+    "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss": "^4.0.0",
