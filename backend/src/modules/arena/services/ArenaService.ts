@@ -63,10 +63,13 @@ export class ArenaService {
           }
         }
 
+        const livePercent = Number(enrollment.percentCompleted ?? 0);
         if (totalCount > 0) {
-          progressPercent = Math.min(100, Math.round((completedCount / totalCount) * 100));
+          progressPercent = Math.max(livePercent, Math.min(100, Math.round((completedCount / totalCount) * 100)));
         } else if (completedCount > 0) {
-          progressPercent = Math.min(100, completedCount * 25);
+          progressPercent = Math.max(livePercent, Math.min(100, completedCount * 25));
+        } else {
+          progressPercent = livePercent;
         }
       } catch (err) {
         console.error('Error calculating progress percent for arena:', err);

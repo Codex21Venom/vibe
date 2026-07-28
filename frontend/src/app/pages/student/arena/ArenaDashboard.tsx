@@ -36,7 +36,7 @@ export default function ArenaDashboard() {
           const enrollment = enrollments.find((e: any) => e.courseId === course.courseId || e.course?.id === course.courseId);
           return {
             ...course,
-            percentCompleted: enrollment?.percentCompleted || 0
+            percentCompleted: Math.max(enrollment?.percentCompleted || 0, course.progressPercent || 0)
           };
         });
         

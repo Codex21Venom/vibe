@@ -11,14 +11,22 @@ interface ArenaBaitViewProps {
 }
 
 export default function ArenaBaitView({ courseId, courseName, onStartGame, onBack, maxHp }: ArenaBaitViewProps) {
-  const [playerBait, setPlayerBait] = useState<number>(0);
+  const [playerBait, setPlayerBait] = useState<number>(4);
   const [computerBait, setComputerBait] = useState<number | null>(null);
   const [baitConfirmed, setBaitConfirmed] = useState(false);
   const [isBaiting, setIsBaiting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleConfirmBait = () => {
-    if (playerBait <= 0 || playerBait > maxHp) return;
-    
+    if (playerBait < 4) {
+      setErrorMsg("Atleast bet with 4 hp to proceed.");
+      return;
+    }
+    if (playerBait > maxHp) {
+      setErrorMsg(`Bet cannot exceed your available HP (${maxHp} HP).`);
+      return;
+    }
+    setErrorMsg(null);
     setIsBaiting(true);
     
     // Simulate computer bet logic
@@ -119,20 +127,37 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
             <div className="flex-1 flex flex-col justify-center gap-6">
               {!baitConfirmed ? (
                 <div className="flex flex-col items-center w-full">
-                  <label className="text-sm font-medium text-slate-400 mb-2">Your HP Bet (Max {maxHp})</label>
+                  <label className="text-sm font-medium text-slate-400 mb-2">Your HP Bet (Min 4, Max {maxHp})</label>
                   <input 
                     type="number" 
-                    min="1"
+                    min="4"
                     max={maxHp}
                     value={playerBait || ""}
-                    onChange={(e) => setPlayerBait(Number(e.target.value))}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-4 text-center text-3xl font-bold text-white mb-4 focus:outline-none focus:border-purple-400"
-                    placeholder="0 HP"
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setPlayerBait(val);
+                      if (val < 4) {
+                        setErrorMsg("Atleast bet with 4 hp to proceed.");
+                      } else if (val > maxHp) {
+                        setErrorMsg(`Bet cannot exceed your available HP (${maxHp} HP).`);
+                      } else {
+                        setErrorMsg(null);
+                      }
+                    }}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-4 text-center text-3xl font-bold text-white mb-2 focus:outline-none focus:border-purple-400"
+                    placeholder="4 HP"
                     disabled={isBaiting}
                   />
+
+                  {errorMsg && (
+                    <div className="w-full text-amber-400 text-xs font-semibold mb-3 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/30 text-center animate-in fade-in duration-200">
+                      ⚠️ {errorMsg}
+                    </div>
+                  )}
+
                   <button 
                     onClick={handleConfirmBait}
-                    disabled={isBaiting || playerBait <= 0 || playerBait > maxHp}
+                    disabled={isBaiting || playerBait < 4 || playerBait > maxHp}
                     className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg"
                   >
                     {isBaiting ? "Locking in..." : "Confirm Bet"}
