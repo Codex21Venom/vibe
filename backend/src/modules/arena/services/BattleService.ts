@@ -328,7 +328,10 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
     }
 
     if (powerUp && battle.inventory.includes(powerUp)) {
-        battle.inventory = battle.inventory.filter(p => p !== powerUp);
+        const pIdx = battle.inventory.indexOf(powerUp);
+        if (pIdx !== -1) {
+            battle.inventory.splice(pIdx, 1);
+        }
         battle.activePowerUps.push(powerUp);
     }
 
@@ -394,8 +397,19 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
         pointsEarned = Math.round(pointsEarned * battle.permanentMultiplier);
     }
     
-    battle.totalPoints += pointsEarned;
-    if (battle.totalPoints < 0) battle.totalPoints = 0;
+    // NON-NEGATIVE POINTS FLOOR RULE:
+    // If user points are 0 or user points - penalty <= 0, points remain 0.
+    // Penalty is only applied if user points - penalty > 0.
+    if (pointsEarned < 0) {
+        if (battle.totalPoints + pointsEarned <= 0) {
+            pointsEarned = -battle.totalPoints; // Only deduct remaining points down to 0
+            battle.totalPoints = 0;
+        } else {
+            battle.totalPoints += pointsEarned;
+        }
+    } else {
+        battle.totalPoints += pointsEarned;
+    }
 
     let triggerHpEvent = false;
     let powerUpGranted: string | null = null;
@@ -409,8 +423,9 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
             battle.hpMilestoneProgress -= 250;
         }
         
-        if (battle.powerUpMilestoneProgress >= 150) {
-            battle.powerUpMilestoneProgress -= 150;
+        // Power-Up Milestone: Every 100 points reached (Max 3 inventory slots)
+        if (battle.powerUpMilestoneProgress >= 100) {
+            battle.powerUpMilestoneProgress -= 100;
             if (battle.inventory.length < 3) {
                 const powerUps = ['Shield', 'Wildcard', 'Quick Counter', 'The Joker', 'Reversal', 'Blocker'];
                 powerUpGranted = powerUps[Math.floor(Math.random() * powerUps.length)];
