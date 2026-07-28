@@ -324,6 +324,25 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
       }
     }
 
+    if (battle.activePowerUps.includes('The Joker')) {
+        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'The Joker');
+        correctCount = correctConcepts.length;
+        hasMistake = false;
+    }
+
+    if (battle.activePowerUps.includes('Wildcard')) {
+        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Wildcard');
+        correctCount += 1;
+    }
+
+    if (battle.activePowerUps.includes('Reversal')) {
+        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Reversal');
+    }
+
+    if (battle.activePowerUps.includes('Blocker')) {
+        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Blocker');
+    }
+
     let multiplier = 1.0;
     let comboName = "None";
     let basePoints = 0;

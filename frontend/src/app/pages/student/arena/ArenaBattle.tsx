@@ -35,7 +35,7 @@ const POWERUP_DESCRIPTIONS: Record<string, string> = {
   'Shield': 'Blocks all point deductions on a wrong answer.',
   'Wildcard': 'Acts as any correct concept card.',
   'Quick Counter': 'Doubles your multiplier permanently after 2 consecutive wins.',
-  'The Joker': 'Random chaotic effect.',
+  'The Joker': 'Automatically plays the correct answer cards for max points.',
   'Reversal': 'Reflects negative points to the opponent.',
   'Blocker': 'Prevents the AI from scoring this round.'
 };
@@ -204,8 +204,13 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   const handlePlayCards = async (cards: Card[]) => {
     if (roundState !== 'playing') return;
     
+    let finalCards = cards;
+    if (selectedPowerUp === 'The Joker') {
+        finalCards = playerHand.filter(c => c.isCorrect);
+    }
+    
     setRoundState('resolving');
-    setPlayedCards(cards);
+    setPlayedCards(finalCards);
     
     if (selectedPowerUp) {
       setPowerUpsUsedCount(prev => prev + 1);
@@ -214,10 +219,10 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     let submitRes: any = null;
     let oldScore = playerScore;
     
-    if (battleId && cards.length > 0) {
+    if (battleId && finalCards.length > 0) {
       try {
          const response = await apiClient.post(`/arena/battle/${battleId}/submit`, { 
-             cards: cards.map(c => c.name || 'Timeout'),
+             cards: finalCards.map(c => c.name || 'Timeout'),
              powerUp: selectedPowerUp
          });
          submitRes = response.data;
@@ -289,8 +294,16 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
       }
     } else {
       // Local fallback calculation based on Base Scoring rules
-      const pCorrectCount = pCards.filter(c => c.isCorrect).length;
-      const pHasMistake = pCards.some(c => !c.isCorrect);
+      let pCorrectCount = pCards.filter(c => c.isCorrect).length;
+      let pHasMistake = pCards.some(c => !c.isCorrect);
+      
+      if (selectedPowerUp === 'The Joker') {
+          pCorrectCount = playerHand.filter(c => c.isCorrect).length;
+          pHasMistake = false;
+      } else if (selectedPowerUp === 'Wildcard') {
+          pCorrectCount += 1;
+      }
+
       if (!pHasMistake && pCorrectCount > 0) {
         let mult = 1;
         if (pCorrectCount === 2) mult = 1.5;
@@ -326,6 +339,11 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
         cComboName = "Combo Broken!";
     }
     
+    if (selectedPowerUp === 'Blocker') {
+        cMultiplier = 0;
+        cComboName = "Blocked!";
+    }
+    
     setComputerComboName(cComboName);
     setComputerComboMultiplier(cMultiplier);
     
@@ -333,6 +351,16 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
         cScoreDelta = Math.round(50 * cMultiplier); 
     } else {
         cScoreDelta = -30;
+    }
+
+    if (selectedPowerUp === 'Reversal') {
+        cScoreDelta = -cScoreDelta;
+        if (cScoreDelta > 0) {
+            cComboName = "Reversed to Win!";
+        } else {
+            cComboName = "Reversed to Loss!";
+        }
+        setComputerComboName(cComboName);
     }
     
     const newPlayerScore = oldScore + pScoreDelta;

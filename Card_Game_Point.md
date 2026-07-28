@@ -42,7 +42,7 @@ Apply the following rules when evaluating played card hands:
 1. **Shield:** Prevents point loss on the next loss (0 points deducted instead of -30). Consumed upon use.
 2. **Wildcard:** Acts as a substitute for any card to complete a combination.
 3. **Quick Counter:** Once activated, if the player wins 2 consecutive turns immediately following usage, all future point gains are **permanently doubled (2x)** for the rest of the game session.
-4. **The Joker:** Inspects the current hand/deck and automatically plays/suggests the optimal combination for maximum point gain.
+4. **The Joker:** Automatically picks up the correct answer cards from the current hand and plays a combination such that it gives the maximum point gain.
 5. **Reversal:** Cast on an opponent; reverses their outcome for the current turn (Win becomes Loss, Loss becomes Win).
 6. **Blocker:** Blocks 1 targeted card from the opponent's active hand.
 
