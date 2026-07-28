@@ -285,8 +285,19 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
         questionData = JSON.parse(jsonText);
         console.log("Parsed Question Data:", questionData);
       } catch (e: any) {
-        console.error("AI Generation failed:", e);
-        throw new Error(`AI Generation Error: ${e?.message || String(e)}`);
+        console.error("AI Generation failed, using fallback topic generator:", e?.message || e);
+        const topicName = completedTopics.length > 0 ? completedTopics[Math.floor(Math.random() * completedTopics.length)] : course.name;
+        questionData = {
+          promptText: `Apply the foundational concepts of '${topicName}' to select the correct principles required for this scenario.`,
+          deck: [
+            { name: `${topicName} Core`, explanation: `Essential core principle of ${topicName}`, isCorrect: true },
+            { name: `Applied ${topicName}`, explanation: `Correct practical implementation concept`, isCorrect: true },
+            { name: `Outdated Method`, explanation: `Plausible distractor concept`, isCorrect: false },
+            { name: `Irrelevant Logic`, explanation: `Concept not applicable to this scenario`, isCorrect: false },
+            { name: `Common Misconception`, explanation: `Plausible but incorrect concept`, isCorrect: false }
+          ],
+          explanation: `Focus on foundational concepts taught in ${topicName}.`
+        };
       }
     }
 
