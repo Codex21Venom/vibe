@@ -19,20 +19,32 @@ export class BattleSession {
   courseId: string;
 
   @Expose()
-  @JSONSchema({ title: 'Player HP', type: 'number' })
-  playerHp: number;
+  @JSONSchema({ title: 'Total Points', type: 'number' })
+  totalPoints: number;
 
   @Expose()
-  @JSONSchema({ title: 'Player KP', type: 'number' })
-  playerKp: number;
+  @JSONSchema({ title: 'HP Milestone Progress', type: 'number' })
+  hpMilestoneProgress: number;
 
   @Expose()
-  @JSONSchema({ title: 'AI HP', type: 'number' })
-  aiHp: number;
+  @JSONSchema({ title: 'Power-Up Milestone Progress', type: 'number' })
+  powerUpMilestoneProgress: number;
 
   @Expose()
-  @JSONSchema({ title: 'AI KP', type: 'number' })
-  aiKp: number;
+  @JSONSchema({ title: 'Inventory', type: 'array', items: { type: 'string' } })
+  inventory: string[];
+
+  @Expose()
+  @JSONSchema({ title: 'Active Power-Ups', type: 'array', items: { type: 'string' } })
+  activePowerUps: string[];
+
+  @Expose()
+  @JSONSchema({ title: 'Permanent Multiplier', type: 'number' })
+  permanentMultiplier: number;
+
+  @Expose()
+  @JSONSchema({ title: 'Consecutive Wins', type: 'number' })
+  consecutiveWins: number;
 
   @Expose()
   @JSONSchema({ title: 'Turn Number', type: 'number' })
@@ -54,10 +66,13 @@ export class BattleSession {
   constructor(partial?: Partial<BattleSession>) {
     this.userId = partial?.userId || '';
     this.courseId = partial?.courseId || '';
-    this.playerHp = partial?.playerHp ?? 100;
-    this.playerKp = partial?.playerKp ?? 0;
-    this.aiHp = partial?.aiHp ?? 100;
-    this.aiKp = partial?.aiKp ?? 0;
+    this.totalPoints = partial?.totalPoints ?? 0;
+    this.hpMilestoneProgress = partial?.hpMilestoneProgress ?? 0;
+    this.powerUpMilestoneProgress = partial?.powerUpMilestoneProgress ?? 0;
+    this.inventory = partial?.inventory ?? [];
+    this.activePowerUps = partial?.activePowerUps ?? [];
+    this.permanentMultiplier = partial?.permanentMultiplier ?? 1.0;
+    this.consecutiveWins = partial?.consecutiveWins ?? 0;
     this.turnNumber = partial?.turnNumber ?? 1;
     this.isActive = partial?.isActive ?? true;
     this.currentQuestion = partial?.currentQuestion || null;

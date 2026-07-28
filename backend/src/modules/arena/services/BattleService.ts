@@ -39,10 +39,13 @@ export class BattleService {
     const battle = new BattleSession({
       userId,
       courseId,
-      playerHp: 100,
-      playerKp: 0,
-      aiHp: 100,
-      aiKp: 0,
+      totalPoints: 0,
+      hpMilestoneProgress: 0,
+      powerUpMilestoneProgress: 0,
+      inventory: [],
+      activePowerUps: [],
+      permanentMultiplier: 1.0,
+      consecutiveWins: 0,
       turnNumber: 1,
       isActive: true,
     });
@@ -219,10 +222,15 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
     return question;
   }
 
-  public async submitAnswer(battleId: string, submittedCards: string[]): Promise<any> {
+  public async submitAnswer(battleId: string, submittedCards: string[], powerUp?: string): Promise<any> {
     const battle = await this.arenaRepo.getBattleById(battleId);
     if (!battle || !battle.isActive) {
       throw new Error('Battle not found or inactive');
+    }
+
+    if (powerUp && battle.inventory.includes(powerUp)) {
+        battle.inventory = battle.inventory.filter(p => p !== powerUp);
+        battle.activePowerUps.push(powerUp);
     }
 
     const currentQuestion = battle.currentQuestion;
@@ -232,7 +240,6 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
 
     const correctConcepts: string[] = currentQuestion.correctConcepts || [];
     
-    // Evaluate combo logic
     let correctCount = 0;
     let hasMistake = false;
     
@@ -245,46 +252,77 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
     }
 
     let multiplier = 1.0;
-    let comboName = "Single Strike";
-    
-    // If any mistake, combo breaks
-    if (hasMistake) {
-        multiplier = 0;
-        comboName = "Combo Broken!";
-    } else if (correctCount > 1) {
-        if (correctCount === 2) {
-            multiplier = 1.5;
-            comboName = "Pair Combo!";
-        } else if (correctCount === 3) {
-            multiplier = 2.0;
-            comboName = "Three of a Kind!";
-        } else if (correctCount === 4) {
-            multiplier = 2.5;
-            comboName = "Four of a Kind!";
-        } else if (correctCount >= 5) {
-            multiplier = 3.0;
-            comboName = "Full House Mastery!";
-        }
-    } else if (correctCount === 0) {
-        multiplier = 0;
-        comboName = "Miss";
+    let comboName = "None";
+    let basePoints = 0;
+
+    let shieldUsed = false;
+    if (hasMistake && battle.activePowerUps.includes('Shield')) {
+        shieldUsed = true;
+        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Shield');
     }
 
-    const accuracy = correctConcepts.length > 0 ? (correctCount / correctConcepts.length) : 0;
+    if (hasMistake) {
+        basePoints = shieldUsed ? 0 : -30;
+        multiplier = 1.0;
+        comboName = "None";
+        battle.consecutiveWins = 0;
+    } else {
+        basePoints = 50;
+        battle.consecutiveWins += 1;
+        
+        if (correctCount === 2) {
+            multiplier = 1.5;
+            comboName = "Pair";
+        } else if (correctCount === 3) {
+            multiplier = 2.5;
+            comboName = "Three of a Kind";
+        } else if (correctCount === 4) {
+            multiplier = 3.0;
+            comboName = "Flush";
+        } else if (correctCount >= 5) {
+            multiplier = 4.0;
+            comboName = "Full House";
+        }
+        
+        if (battle.activePowerUps.includes('Quick Counter') && battle.consecutiveWins >= 2) {
+            battle.permanentMultiplier = 2.0;
+            battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Quick Counter');
+        }
+    }
     
-    // Base KP earned
-    let kpEarned = Math.round(accuracy * 50); 
-    // Apply multiplier
-    kpEarned = Math.round(kpEarned * multiplier);
+    let pointsEarned = Math.round(basePoints * multiplier);
+    if (pointsEarned > 0 && battle.permanentMultiplier > 1.0) {
+        pointsEarned = Math.round(pointsEarned * battle.permanentMultiplier);
+    }
     
-    // Base damage is handled by frontend, but we can return multiplier to frontend
-    // Penalize HP for mistakes
-    const mistakes = submittedCards.length - correctCount;
-    const hpLost = hasMistake ? (mistakes * 5 + 5) : 0; // Extra flat penalty if combo broke
+    battle.totalPoints += pointsEarned;
+    if (battle.totalPoints < 0) battle.totalPoints = 0;
 
-    battle.playerKp += kpEarned;
-    battle.playerHp = Math.max(0, battle.playerHp - hpLost);
-    battle.currentQuestion = null; // Clear question
+    let triggerHpEvent = false;
+    let powerUpGranted: string | null = null;
+    
+    if (pointsEarned > 0) {
+        battle.hpMilestoneProgress += pointsEarned;
+        battle.powerUpMilestoneProgress += pointsEarned;
+        
+        if (battle.hpMilestoneProgress >= 250) {
+            triggerHpEvent = true;
+            battle.hpMilestoneProgress -= 250;
+        }
+        
+        if (battle.powerUpMilestoneProgress >= 150) {
+            battle.powerUpMilestoneProgress -= 150;
+            if (battle.inventory.length < 3) {
+                const powerUps = ['Shield', 'Wildcard', 'Quick Counter', 'The Joker', 'Reversal', 'Blocker'];
+                powerUpGranted = powerUps[Math.floor(Math.random() * powerUps.length)];
+                battle.inventory.push(powerUpGranted);
+            }
+        }
+    }
+
+    const actionSummary = hasMistake ? (shieldUsed ? 'Shield blocked loss' : 'Loss') : 'Win';
+
+    battle.currentQuestion = null;
 
     await this.arenaRepo.saveBattle(battle);
 
@@ -294,57 +332,24 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
 
     return {
       success: true,
-      correctCount,
-      hasMistake,
+      actionSummary,
       comboName,
+      basePoints,
       multiplier,
-      kpEarned,
-      hpLost,
+      permanentMultiplier: battle.permanentMultiplier,
+      pointsEarned,
+      milestoneChecks: {
+        hpTriggered: triggerHpEvent,
+        powerUpGranted,
+        hpProgress: battle.hpMilestoneProgress,
+        powerUpProgress: battle.powerUpMilestoneProgress
+      },
       battle: {
-        playerHp: battle.playerHp,
-        playerKp: battle.playerKp,
-        computerHp: battle.aiHp,
+        totalPoints: battle.totalPoints,
+        inventory: battle.inventory,
+        activePowerUps: battle.activePowerUps,
         isActive: battle.isActive
       }
     };
-  }
-
-  public async executeCombatAction(battleId: string, actionType: 'attack' | 'shield' | 'heal'): Promise<BattleSession> {
-    const battle = await this.arenaRepo.getBattleById(battleId);
-    if (!battle || !battle.isActive) {
-      throw new Error('Battle not found or inactive');
-    }
-
-    // Simple combat mechanics MVP
-    const attackCost = 20;
-    const healCost = 15;
-    const shieldCost = 10;
-
-    if (actionType === 'attack' && battle.playerKp >= attackCost) {
-      battle.playerKp -= attackCost;
-      battle.aiHp = Math.max(0, battle.aiHp - 25);
-    } else if (actionType === 'heal' && battle.playerKp >= healCost) {
-      battle.playerKp -= healCost;
-      battle.playerHp = Math.min(100, battle.playerHp + 20);
-    } else if (actionType === 'shield' && battle.playerKp >= shieldCost) {
-      battle.playerKp -= shieldCost;
-      // In a real implementation, we'd add a status effect.
-    }
-
-    // AI Turn (Simple logic)
-    battle.aiKp += 10; // AI passively gains KP
-    if (battle.aiKp >= attackCost) {
-      battle.aiKp -= attackCost;
-      battle.playerHp = Math.max(0, battle.playerHp - 15);
-    }
-
-    battle.turnNumber += 1;
-
-    // Check win/loss
-    if (battle.playerHp <= 0 || battle.aiHp <= 0) {
-      battle.isActive = false;
-    }
-
-    return this.arenaRepo.saveBattle(battle);
   }
 }

@@ -56,6 +56,9 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   const [comboName, setComboName] = useState<string>("");
   const [comboMultiplier, setComboMultiplier] = useState<number>(1);
   
+  const [inventory, setInventory] = useState<string[]>([]);
+  const [selectedPowerUp, setSelectedPowerUp] = useState<string | null>(null);
+  
   const [roundResultText, setRoundResultText] = useState("");
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -170,10 +173,22 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     
     if (battleId && cards.length > 0) {
       try {
-         const response = await apiClient.post(`/arena/battle/${battleId}/submit`, { cards: cards.map(c => c.name || 'Timeout') });
+         const response = await apiClient.post(`/arena/battle/${battleId}/submit`, { 
+             cards: cards.map(c => c.name || 'Timeout'),
+             powerUp: selectedPowerUp
+         });
          submitRes = response.data;
          setComboName(submitRes.comboName || "Combo Broken!");
          setComboMultiplier(submitRes.multiplier || 0);
+         setSelectedPowerUp(null); // Reset after use
+         
+         if (submitRes.battle) {
+             setInventory(submitRes.battle.inventory || []);
+         }
+         
+         if (submitRes.milestoneChecks?.hpTriggered) {
+             syncGlobalHp(10);
+         }
       } catch (e) {
          console.error("Failed submitting answer", e);
       }
@@ -220,10 +235,12 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
 
     // Resolve Player via API response
     if (submitRes) {
-      pScoreDelta += submitRes.kpEarned || 0;
+      pScoreDelta += submitRes.pointsEarned || 0;
       
-      if (submitRes.multiplier > 0) {
+      if (submitRes.actionSummary === 'Win') {
         resultMsg += `You struck with ${submitRes.comboName}! `;
+      } else if (submitRes.actionSummary === 'Shield blocked loss') {
+        resultMsg += "Shield activated! Points protected. ";
       } else {
         resultMsg += "Your combo failed! ";
       }
@@ -505,6 +522,28 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
             <span className="text-white font-mono text-xl">{playerScore} PTS</span>
           </div>
         </div>
+
+        {inventory.length > 0 && (
+          <div className="flex gap-4 mb-2 justify-center w-full max-w-5xl px-8 items-center">
+            <span className="text-amber-400 font-bold text-sm tracking-widest">POWER-UPS:</span>
+            {inventory.map((powerup, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => {
+                  if (roundState === 'playing') {
+                     setSelectedPowerUp(prev => prev === powerup ? null : powerup);
+                  }
+                }}
+                className={`playing-card powerup-card origin-bottom cursor-pointer transition-transform ${selectedPowerUp === powerup ? 'ring-2 ring-amber-400 -translate-y-4 scale-110 shadow-[0_0_20px_rgba(245,158,11,0.6)]' : 'hover:-translate-y-2 shadow-[0_0_15px_rgba(245,158,11,0.3)]'}`}
+                style={{ width: '80px', height: '110px', padding: '0.5rem', borderRadius: '0.75rem' }}
+                title={`Use ${powerup}`}
+              >
+                <div className="text-amber-500 font-bold flex justify-center mt-1"><Zap size={20}/></div>
+                <div className="text-xs font-black text-center mt-2 text-white leading-tight">{powerup}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="hand-container pb-4">
           {playerHand.map((card) => (

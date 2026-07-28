@@ -56,17 +56,10 @@ export class ArenaController {
   @Authorized()
   public async submitAnswer(
     @Param('battleId') battleId: string,
-    @Body() body: { cards: string[] }
+    @Body() body: { cards: string[], powerUp?: string }
   ) {
-    return this.battleService.submitAnswer(battleId, body.cards);
+    return this.battleService.submitAnswer(battleId, body.cards, body.powerUp);
   }
 
-  @Post('/battle/:battleId/combat')
-  @Authorized()
-  public async executeCombat(
-    @Param('battleId') battleId: string,
-    @Body() body: { action: 'attack' | 'shield' | 'heal' }
-  ) {
-    return this.battleService.executeCombatAction(battleId, body.action);
-  }
+
 }
