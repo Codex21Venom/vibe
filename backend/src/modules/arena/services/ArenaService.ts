@@ -32,27 +32,9 @@ export class ArenaService {
       let totalCount = 0;
 
       try {
-        const userObjId = new (await import('mongodb')).ObjectId(userId);
-        const courseObjId = new (await import('mongodb')).ObjectId(courseIdStr);
-
-        const progressCol = await this.arenaRepo.getCollection('progress');
-        const completedDocs = await progressCol.find({
-          $or: [{ userId: userObjId }, { userId: userId }],
-          courseId: { $in: [courseObjId, courseIdStr] },
-          isCompleted: true
-        }).toArray();
-        
-        const watchTimeCol = await this.arenaRepo.getCollection('watchTime');
-        const watchTimeDistinct = await watchTimeCol.distinct('itemId', {
-          $or: [{ userId: userObjId }, { userId: userId }],
-          courseId: { $in: [courseObjId, courseIdStr] },
-          endTime: { $exists: true, $ne: null }
-        });
-
-        completedCount = Math.max(completedDocs.length, watchTimeDistinct.length);
-
         const livePercent = Number(enrollment.percentCompleted ?? 0);
         totalCount = enrollment.contentCounts?.totalItems || 0;
+        completedCount = enrollment.contentCounts?.completedItems || 0;
         progressPercent = livePercent;
       } catch (err) {
         console.error('Error calculating progress percent for arena:', err);

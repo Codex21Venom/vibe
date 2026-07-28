@@ -57,27 +57,6 @@ export class BattleService {
       
       completedItemIds = watchTimeDistinct.map((id: any) => id.toString());
 
-      const completedCount = Math.max(completedDocs.length, watchTimeDistinct.length);
-
-      let totalCount = 0;
-      if (courseEnrollment && courseEnrollment.courseVersionId) {
-        const versionCol = await this.arenaRepo.getCollection('newCourseVersion');
-        const versionDoc = await versionCol.findOne({
-          _id: new (await import('mongodb')).ObjectId(courseEnrollment.courseVersionId.toString())
-        });
-        if (versionDoc && Array.isArray(versionDoc.itemsGroup)) {
-          totalCount = versionDoc.itemsGroup.reduce((acc: number, group: any) => {
-            return acc + (Array.isArray(group.items) ? group.items.length : 0);
-          }, 0);
-        }
-      }
-
-      if (totalCount > 0) {
-        const calculated = Math.min(100, Math.round((completedCount / totalCount) * 100));
-        progressPercent = Math.max(progressPercent, calculated);
-      } else if (completedCount > 0) {
-        progressPercent = Math.max(progressPercent, Math.min(100, completedCount * 25));
-      }
     } catch (err) {
       console.error('Error computing course progress in BattleService:', err);
     }
@@ -284,19 +263,8 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
         questionData = JSON.parse(jsonText);
         console.log("Parsed Question Data:", questionData);
       } catch (e: any) {
-        console.error("AI Generation failed, using fallback topic generator:", e?.message || e);
-        const topicName = completedTopics.length > 0 ? completedTopics[Math.floor(Math.random() * completedTopics.length)] : course.name;
-        questionData = {
-          promptText: `Apply the foundational concepts of '${topicName}' to select the correct principles required for this scenario.`,
-          deck: [
-            { name: `${topicName} Core`, explanation: `Essential core principle of ${topicName}`, isCorrect: true },
-            { name: `Applied ${topicName}`, explanation: `Correct practical implementation concept`, isCorrect: true },
-            { name: `Outdated Method`, explanation: `Plausible distractor concept`, isCorrect: false },
-            { name: `Irrelevant Logic`, explanation: `Concept not applicable to this scenario`, isCorrect: false },
-            { name: `Common Misconception`, explanation: `Plausible but incorrect concept`, isCorrect: false }
-          ],
-          explanation: `Focus on foundational concepts taught in ${topicName}.`
-        };
+        console.error("AI Generation failed:", e?.message || e);
+        throw new Error("AI Generation failed. Strictly enforcing live question generation.");
       }
     }
 
