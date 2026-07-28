@@ -28,7 +28,66 @@ export class BattleService {
     @inject(STUDENT_QUESTION_TYPES.SegmentContextProvider) private readonly segmentContextProvider: SegmentContextProvider
   ) {}
 
+  private async getUserCourseProgress(userId: string, courseId: string): Promise<{ progressPercent: number; courseEnrollment: any }> {
+    const enrollments = await this.enrollmentRepo.getAllEnrollments(userId.toString());
+    const courseEnrollment = enrollments.find(
+      e => (e.courseId?.toString() === courseId || (e as any).course?.toString() === courseId) && e.status === 'ACTIVE'
+    );
+
+    let progressPercent = Number(courseEnrollment?.percentCompleted ?? 0);
+
+    try {
+      const userObjId = new (await import('mongodb')).ObjectId(userId);
+      const courseObjId = new (await import('mongodb')).ObjectId(courseId);
+
+      const progressCol = await this.arenaRepo.getCollection('progress');
+      const completedDocs = await progressCol.find({
+        $or: [{ userId: userObjId }, { userId: userId }],
+        courseId: { $in: [courseObjId, courseId] },
+        isCompleted: true
+      }).toArray();
+
+      const watchTimeCol = await this.arenaRepo.getCollection('watchTime');
+      const watchTimeDistinct = await watchTimeCol.distinct('itemId', {
+        $or: [{ userId: userObjId }, { userId: userId }],
+        courseId: { $in: [courseObjId, courseId] },
+        endTime: { $exists: true, $ne: null }
+      });
+
+      const completedCount = Math.max(completedDocs.length, watchTimeDistinct.length);
+
+      let totalCount = 0;
+      if (courseEnrollment && courseEnrollment.courseVersionId) {
+        const versionCol = await this.arenaRepo.getCollection('newCourseVersion');
+        const versionDoc = await versionCol.findOne({
+          _id: new (await import('mongodb')).ObjectId(courseEnrollment.courseVersionId.toString())
+        });
+        if (versionDoc && Array.isArray(versionDoc.itemsGroup)) {
+          totalCount = versionDoc.itemsGroup.reduce((acc: number, group: any) => {
+            return acc + (Array.isArray(group.items) ? group.items.length : 0);
+          }, 0);
+        }
+      }
+
+      if (totalCount > 0) {
+        const calculated = Math.min(100, Math.round((completedCount / totalCount) * 100));
+        progressPercent = Math.max(progressPercent, calculated);
+      } else if (completedCount > 0) {
+        progressPercent = Math.max(progressPercent, Math.min(100, completedCount * 25));
+      }
+    } catch (err) {
+      console.error('Error computing course progress in BattleService:', err);
+    }
+
+    return { progressPercent, courseEnrollment };
+  }
+
   public async startBattle(userId: string, courseId: string): Promise<BattleSession> {
+    const { progressPercent } = await this.getUserCourseProgress(userId, courseId);
+    if (progressPercent < 30) {
+      throw new Error(`You must complete at least 30% of the course to enter the Arena. (Current progress: ${progressPercent}%)`);
+    }
+
     // End any existing active battles for this user
     const existing = await this.arenaRepo.getActiveBattle(userId);
     if (existing) {
@@ -59,6 +118,15 @@ export class BattleService {
       throw new Error('Battle not found or inactive');
     }
 
+    const { progressPercent, courseEnrollment } = await this.getUserCourseProgress(
+      battle.userId.toString(),
+      battle.courseId.toString()
+    );
+
+    if (progressPercent < 30) {
+      throw new Error(`You must complete at least 30% of the course to enter the Arena. (Current progress: ${progressPercent}%)`);
+    }
+
     // Fetch the course to get its name and description as context for the AI
     const course = await this.courseRepo.read(battle.courseId.toString());
     if (!course) {
@@ -72,10 +140,6 @@ export class BattleService {
       let segmentContext = '';
       let completedTopics: string[] = [];
       try {
-        // Find the user's enrollment to get the active courseVersionId
-        const enrollments = await this.enrollmentRepo.getAllEnrollments(battle.userId.toString());
-        const courseEnrollment = enrollments.find(e => e.courseId?.toString() === battle.courseId.toString() && e.status === 'ACTIVE');
-        
         if (courseEnrollment && courseEnrollment.courseVersionId) {
           const versionIdStr = courseEnrollment.courseVersionId.toString();
           
@@ -101,9 +165,9 @@ export class BattleService {
             }
 
             if (videoItems.length > 0) {
-              // Pick up to 3 random completed VIDEO items to form a broader topic context
+              // Pick up to 4 random completed VIDEO items to form topic context
               const shuffledItems = [...videoItems].sort(() => 0.5 - Math.random());
-              const selectedItems = shuffledItems.slice(0, Math.min(3, shuffledItems.length));
+              const selectedItems = shuffledItems.slice(0, Math.min(4, shuffledItems.length));
               
               completedTopics = selectedItems.map(item => item.name);
             
@@ -124,27 +188,56 @@ export class BattleService {
         console.error("Failed to fetch transcript context for arena question:", err);
       }
 
+      const QUESTION_STYLES = [
+        {
+          name: 'Scenario Analysis',
+          instruction: 'Create a practical problem scenario where the student must choose the exact concepts required to solve it.'
+        },
+        {
+          name: 'Concept Comparison',
+          instruction: 'Create a question contrasting key concepts, asking the student to select the true matching concepts.'
+        },
+        {
+          name: 'Diagnostic Logic',
+          instruction: 'Describe an error, bug, or suboptimal output and ask the user to select the cards containing the corrective concepts.'
+        },
+        {
+          name: 'Practical Application',
+          instruction: 'Formulate an execution-focused task requiring the selection of correct implementation steps/tools.'
+        },
+        {
+          name: 'Principle Identification',
+          instruction: 'Present a specific outcome requirement and ask the student to pick the fundamental principles that govern it.'
+        }
+      ];
+      const selectedStyle = QUESTION_STYLES[Math.floor(Math.random() * QUESTION_STYLES.length)];
+
       let finalContextText = '';
       if (completedTopics.length > 0) {
-        finalContextText = `STRICT PROGRESS SCOPING RULE: The student has ONLY completed the following topics so far: [${completedTopics.join(', ')}].
-YOU ARE STRICTLY LIMITED TO THESE COMPLETED TOPICS. DO NOT GENERATE ANY QUESTIONS, ANSWERS, OR CARDS FROM UNLEARNED TOPICS OUTSIDE THIS LIST.
+        finalContextText = `STRICT PROGRESS BOUNDARY (${progressPercent}% Progress Completed):
+The student has currently completed ${progressPercent}% of the course. The completed topics available are: [${completedTopics.join(', ')}].
+YOU ARE STRICTLY RESTRICTED TO THESE COMPLETED TOPICS ONLY (${progressPercent}% boundary). DO NOT ASK QUESTIONS OR GENERATE CARDS FOR UNLEARNED/FUTURE CONCEPTS OUTSIDE THIS LIST.
 
-COMPLETED LESSON TRANSCRIPTS & TOPIC CONTEXT:
+COMPLETED LESSON TRANSCRIPTS & CONTEXT:
 ${segmentContext}`;
       } else {
-        finalContextText = `COURSE DESCRIPTION:\n"${course.description}"\n\n(Infer initial introductory concepts taught in the course)`;
+        finalContextText = `STRICT PROGRESS BOUNDARY (${progressPercent}% Progress Completed):
+COURSE DESCRIPTION:\n"${course.description}"\n\n(Only use introductory topics from the first ${progressPercent}% of this course)`;
       }
 
       const prompt = `You are the AI opponent in a competitive, fast-paced strategy card game called Knowledge Clash.
 The player is studying the educational course: "${course.name}".
 
-CRITICAL RULE 1: STRICT PROGRESS SCOPING! You MUST ONLY ask questions and generate concept cards from the student's COMPLETED TOPICS: [${completedTopics.length > 0 ? completedTopics.join(', ') : 'Initial Course Concepts'}]. Do NOT use unlearned, advanced, or future topics outside of what the student has completed.
-CRITICAL RULE 2: Keep it PUNCHY and CONCISE! This is a fast-paced game with a 15-second timer. The scenario/question should be short (1-2 sentences max). Card names must be 1-4 words max. Explanations must be ultra-short (1 short sentence max).
-CRITICAL RULE 3: IGNORE COURSE STRUCTURE METADATA. Do NOT generate questions about "video segments", "quizzes", "modules", or "transcripts". You must generate questions about the actual EDUCATIONAL SUBJECT MATTER taught in the completed topics!
+CRITICAL RULE 1: STRICT SCOPING BY PROGRESS (${progressPercent}%)! You MUST ONLY ask questions and generate concept cards from the student's COMPLETED TOPICS: [${completedTopics.length > 0 ? completedTopics.join(', ') : 'Topics from first ' + progressPercent + '% of course'}]. Under NO circumstances should you ask about advanced topics beyond the student's current ${progressPercent}% progress!
+CRITICAL RULE 2: QUESTION VARIETY & STYLE! Use the following question style for this turn:
+-> QUESTION STYLE: ${selectedStyle.name}
+-> STYLE INSTRUCTION: ${selectedStyle.instruction}
+CRITICAL RULE 3: Keep it PUNCHY and CONCISE! Scenario/question: 1-2 short sentences max. Card names: 1-4 words max. Explanations: 1 short sentence max.
+CRITICAL RULE 4: IGNORE COURSE STRUCTURE METADATA. Do NOT ask about "video segments", "quizzes", "modules", or "transcripts". Focus strictly on the actual EDUCATIONAL SUBJECT MATTER taught!
 
 ${finalContextText}
 
-Based ONLY on the completed topics (${completedTopics.length > 0 ? completedTopics.join(', ') : 'Initial Course Concepts'}), create a question or scenario.
+Based ONLY on the completed topics within ${progressPercent}% course progress, create a ${selectedStyle.name} question or scenario.
 
 You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts required to solve the scenario, and others must be plausible but incorrect distractor concepts from the completed topics. Each card must include a short explanation.`;
 
