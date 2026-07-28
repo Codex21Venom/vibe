@@ -235,7 +235,10 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
     }
 
     if (powerUp && battle.inventory.includes(powerUp)) {
-        battle.inventory = battle.inventory.filter(p => p !== powerUp);
+        const index = battle.inventory.indexOf(powerUp);
+        if (index > -1) {
+            battle.inventory.splice(index, 1);
+        }
         battle.activePowerUps.push(powerUp);
     }
 
@@ -311,12 +314,12 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
         battle.hpMilestoneProgress += pointsEarned;
         battle.powerUpMilestoneProgress += pointsEarned;
         
-        if (battle.hpMilestoneProgress >= 250) {
+        while (battle.hpMilestoneProgress >= 250) {
             triggerHpEvent = true;
             battle.hpMilestoneProgress -= 250;
         }
         
-        if (battle.powerUpMilestoneProgress >= 150) {
+        while (battle.powerUpMilestoneProgress >= 150) {
             battle.powerUpMilestoneProgress -= 150;
             if (battle.inventory.length < 3) {
                 const powerUps = ['Shield', 'Wildcard', 'Quick Counter', 'The Joker', 'Reversal', 'Blocker'];
