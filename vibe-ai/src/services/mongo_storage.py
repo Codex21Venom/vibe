@@ -20,7 +20,9 @@ class MongoStorageService:
             
         self.db = self.client[self.db_name]
         self.fs = AsyncIOMotorGridFSBucket(self.db)
-        self.server_url = os.getenv('VIBE_AI_SERVER_URL', 'http://localhost:8017')
+        # Fallback to PORT env var or port 9017 for server_url
+        port = os.getenv('PORT', '9017')
+        self.server_url = os.getenv('VIBE_AI_SERVER_URL', f'http://localhost:{port}')
         
         # Start initialization (create TTL indexes)
         asyncio.create_task(self._init_indexes())

@@ -264,37 +264,59 @@ consensus_boundaries
         if segmentation_params and segmentation_params.noiseId:
             noise_id_param = segmentation_params.noiseId
 
-        if not transcript:
+        chunks = transcript.chunks if (transcript and hasattr(transcript, 'chunks')) else []
+
+        if not chunks:
             raise HTTPException(
                 status_code=400,
-                detail="Transcript text is required and must be a non-empty string."
+                detail="Transcript text is required and must contain chunks."
             )
 
-        chunks = transcript.chunks
-
-        transcript_sentences = []
-        for chunk in chunks:
-            transcript_sentences.append(chunk.text)
-
-        #Generate Embedding of transcript sentences and find topics
+        transcript_sentences = [chunk.text for chunk in chunks if chunk.text]
         sentences = transcript_sentences
+
+        if len(sentences) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Transcript chunks contain no valid text."
+            )
+
+        # For very short transcripts, skip BERTopic clustering and return a single segment
+        if len(sentences) < 5:
+            print(f"Transcript has only {len(sentences)} sentence(s). Skipping BERTopic clustering.")
+            last_chunk = chunks[-1]
+            endtime = last_chunk.timestamp[1] if (last_chunk.timestamp and len(last_chunk.timestamp) == 2) else 0.0
+            segment_text = " ".join(sentences).strip()
+            segments = {str(endtime): segment_text}
+            return SegmentResponse(complete_segments=segments, segments=[float(endtime)], segment_count=1)
+
+        # Generate Embedding of transcript sentences and find topics
         embedder = SentenceTransformer("all-mpnet-base-v2")
         embeddings = embedder.encode(sentences)
-        topic_model = BERTopic(min_topic_size=2)
 
-        # Run BERTopic multiple times for consensus
-        boundary_runs = []
+        try:
+            min_topic_size = min(10, max(2, len(sentences) // 2))
+            topic_model = BERTopic(min_topic_size=min_topic_size)
 
-        for _ in range(runs_param):
-            topics = await self.run_bertopic(topic_model, sentences, embeddings)
-            boundaries = await self.dp_segment(topics, lambda_param, noise_id_param)
-            boundary_runs.append(np.array(boundaries))
-        
-        # Get consensus boundaries
-        consensus, _ = await self.consensus_boundaries(boundary_runs, min_sep=3, method="topk")
-        
-        # Get relevant chunk indices where segments start
-        segment_start_indices = np.where(consensus)[0]
+            # Run BERTopic multiple times for consensus
+            boundary_runs = []
+
+            for _ in range(runs_param):
+                topics = await self.run_bertopic(topic_model, sentences, embeddings)
+                boundaries = await self.dp_segment(topics, lambda_param, noise_id_param)
+                boundary_runs.append(np.array(boundaries))
+            
+            # Get consensus boundaries
+            consensus, _ = await self.consensus_boundaries(boundary_runs, min_sep=3, method="topk")
+            
+            # Get relevant chunk indices where segments start
+            segment_start_indices = np.where(consensus)[0]
+            if len(segment_start_indices) == 0:
+                segment_start_indices = np.array([0])
+        except Exception as err:
+            print(f"BERTopic segmentation failed ({err}), falling back to single segment.")
+            segment_start_indices = np.array([0])
+
         # Apply intermediate segment addition
         segment_start_indices = await self.add_intermediate_segments(segment_start_indices, chunks, max_gap_seconds=350)
         
