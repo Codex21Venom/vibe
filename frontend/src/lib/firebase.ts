@@ -18,7 +18,6 @@ import { useLoginWithGoogle } from "@/hooks/hooks";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -29,14 +28,39 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+let app: any = null;
+let auth: any = null;
+let provider: any = null;
+let analytics: any = null;
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const provider = new GoogleAuthProvider();
+try {
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "undefined") {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    provider = new GoogleAuthProvider();
+    try {
+      analytics = getAnalytics(app);
+    } catch {
+      analytics = null;
+    }
+  } else {
+    console.warn('[Firebase] VITE_FIREBASE_API_KEY is missing. Operating in local auth mode.');
+  }
+} catch (error) {
+  console.warn('[Firebase] Firebase initialization failed. Operating in local auth mode:', error);
+  app = null;
+  auth = null;
+  provider = null;
+  analytics = null;
+}
+
+export { auth, provider, analytics };
 
 // Firebase authentication functions
 export const loginWithGoogle = async () => {
+  if (!auth || !auth.app) {
+    throw new Error("Google Sign-In requires active Firebase credentials. Please sign in using Email & Password for local development.");
+  }
   const result = await signInWithPopup(auth, provider);
   // Get ID token for backend authentication
   const idToken = await result.user.getIdToken();
@@ -200,8 +224,8 @@ export const resetPassword = async (code: string, newPassword: string) => {
 
 export const logout = () => {
   localStorage.removeItem('auth-provider');
-  signOut(auth).catch(() => {});
+  if (auth && auth.app) {
+    signOut(auth).catch(() => {});
+  }
   useAuthStore.getState().clearUser();
 };
-
-export const analytics = getAnalytics(app);

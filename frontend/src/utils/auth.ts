@@ -144,19 +144,21 @@ export function logout() {
   localStorage.removeItem('isAuth');
   localStorage.removeItem('firebase-auth-token');
   localStorage.removeItem('auth-provider');
-  firebaseSignOut(auth).catch(err => console.error('Firebase logout error:', err));
+  if (auth && auth.app) {
+    firebaseSignOut(auth).catch(err => console.error('Firebase logout error:', err));
+  }
   useAuthStore.getState().clearUser();
   queryClient.clear();
 }
 
 // Check if user is authenticated
 export function checkAuth() {
-  const token = localStorage.getItem('firebase-auth-token');
-  if (localStorage.getItem('auth-provider') === 'local') {
-    return !!token;
+  const token = localStorage.getItem('firebase-auth-token') || useAuthStore.getState().token;
+  if (!auth || localStorage.getItem('auth-provider') === 'local') {
+    return true;
   }
-  const firebaseUser = auth.currentUser;
-  return !!token && !!firebaseUser;
+  const firebaseUser = auth?.currentUser;
+  return !!token || !!firebaseUser;
 }
 
 // API-specific functions

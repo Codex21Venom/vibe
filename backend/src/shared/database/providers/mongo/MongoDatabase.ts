@@ -42,7 +42,7 @@ export class MongoDatabase implements IDatabase<Db> {
       return;
     }
 
-    if (process.env.USE_MEMORY_DB === 'true') {
+    if (process.env.USE_MEMORY_DB === 'true' || !uri) {
       this.client = null; // Will initialize dynamically inside connect()
     } else {
       const useTls = uri.startsWith('mongodb+srv://') || uri.includes('ssl=true') || uri.includes('tls=true');

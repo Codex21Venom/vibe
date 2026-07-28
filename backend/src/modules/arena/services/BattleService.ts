@@ -169,7 +169,7 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
         };
 
         const response = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
+            model: aiConfig.GEMINI_MODEL || 'gemini-3.6-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",

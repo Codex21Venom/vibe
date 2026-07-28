@@ -37,74 +37,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Register the token refresh function with the API client
     setTokenRefreshFunction(refreshFirebaseToken);
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('[Auth] onAuthStateChanged fired, user:', firebaseUser ? 'exists' : 'null');
-      if (firebaseUser) {
-        try {
-          console.log('[Auth] Getting fresh token...');
-          const token = await firebaseUser.getIdToken(true);
-          console.log('[Auth] Fresh token obtained, setting token and authReady');
-          setToken(token);
-          setAuthReady(true);
+    let unsubscribe = () => {};
 
-          // Set up automatic token refresh every 50 minutes (tokens expire in 1 hour)
-          if (tokenRefreshIntervalRef.current) {
-            clearInterval(tokenRefreshIntervalRef.current);
-          }
-
-          tokenRefreshIntervalRef.current = setInterval(async () => {
+    if (auth && auth.app) {
+      try {
+        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          console.log('[Auth] onAuthStateChanged fired, user:', firebaseUser ? 'exists' : 'null');
+          if (firebaseUser) {
             try {
-              await refreshFirebaseToken();
-            } catch (error) {
-              console.error('Failed to refresh token:', error);
-              // If refresh fails, sign out user
-              // handleLogout();
+              console.log('[Auth] Getting fresh token...');
+              const token = await firebaseUser.getIdToken(true);
+              console.log('[Auth] Fresh token obtained, setting token and authReady');
+              setToken(token);
+              setAuthReady(true);
 
-              // Retry token refresh 
-              try {
-                console.log('Retrying token refresh...');
-                const firebaseUser = auth.currentUser;
-                if (firebaseUser) {
-                  const newToken = await firebaseUser.getIdToken(true);
-                  setToken(newToken);
+              if (tokenRefreshIntervalRef.current) {
+                clearInterval(tokenRefreshIntervalRef.current);
+              }
+
+              tokenRefreshIntervalRef.current = setInterval(async () => {
+                try {
+                  await refreshFirebaseToken();
+                } catch (error) {
+                  console.error('Failed to refresh token:', error);
+                  try {
+                    console.log('Retrying token refresh...');
+                    const firebaseUser = auth?.currentUser;
+                    if (firebaseUser) {
+                      const newToken = await firebaseUser.getIdToken(true);
+                      setToken(newToken);
+                    }
+                  } catch (retryError) {
+                    console.error('Token refresh retry failed:', retryError);
+                  }
                 }
+              }, 50 * 60 * 1000);
+            } catch (error) {
+              console.error('Error getting initial token:', error);
+              try {
+                const retryToken = await firebaseUser.getIdToken(true);
+                setToken(retryToken);
               } catch (retryError) {
-                console.error('Token refresh retry failed:', retryError);
-
+                console.error('Token refresh on page load failed:', retryError);
               }
             }
-          }, 50 * 60 * 1000); // 50 minutes in milliseconds
-
-        } catch (error) {
-          console.error('Error getting initial token:', error);
-          // Instead of logging out trying to refresh the token once more
-          try {
-            const retryToken = await firebaseUser.getIdToken(true);
-            setToken(retryToken);
-          } catch (retryError) {
-            console.error('Token refresh on page load failed:', retryError);
-
+          } else {
+            if (localStorage.getItem('auth-provider') === 'local' && localStorage.getItem('firebase-auth-token')) {
+              setAuthReady(true);
+              return;
+            }
+            if (tokenRefreshIntervalRef.current) {
+              clearInterval(tokenRefreshIntervalRef.current);
+              tokenRefreshIntervalRef.current = null;
+            }
+            clearUser();
+            setAuthReady(true);
           }
-        }
-      } else {
-        // Check if user is authenticated with local JWT instead of Firebase
-        if (localStorage.getItem('auth-provider') === 'local' && localStorage.getItem('firebase-auth-token')) {
-          setAuthReady(true);
-          return;
-        }
-        // User is signed out, clear everything
-        if (tokenRefreshIntervalRef.current) {
-          clearInterval(tokenRefreshIntervalRef.current);
-          tokenRefreshIntervalRef.current = null;
-        }
-        clearUser();
+        });
+      } catch (err) {
+        console.warn('[Auth] Firebase listener failed (local auth fallback):', err);
         setAuthReady(true);
       }
-    });
+    } else {
+      console.log('[Auth] Operating in local auth mode (Firebase bypassed)');
+      setAuthReady(true);
+    }
 
     // Cleanup function
     return () => {
-      unsubscribe();
+      if (unsubscribe) unsubscribe();
       if (tokenRefreshIntervalRef.current) {
         clearInterval(tokenRefreshIntervalRef.current);
       }

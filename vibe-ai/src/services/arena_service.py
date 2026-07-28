@@ -3,14 +3,13 @@ import json
 from typing import Dict, List, Optional
 from fastapi import HTTPException
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import create_agent
-from langchain.agents.structured_output import ToolStrategy
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from arena_schema import ARENA_QUESTION_SCHEMA
 from models import ArenaQuestionRequest, ArenaQuestionResponse
 
 class ArenaService:
-    DEFAULT_MODEL = "gemini-3.6-flash"
+    DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
@@ -19,14 +18,6 @@ class ArenaService:
             google_api_key=api_key,
             temperature=0.7,
             timeout=300,
-        )
-
-    def _build_agent(self, schema: dict, system_prompt: str):
-        return create_agent(
-            model=self.model,
-            tools=[],
-            response_format=ToolStrategy(schema),
-            system_prompt=system_prompt,
         )
 
     def _build_system_prompt(self) -> str:
@@ -55,18 +46,21 @@ class ArenaService:
             "Each card should include an explanation of why it is correct or incorrect."
         )
 
-        agent = self._build_agent(ARENA_QUESTION_SCHEMA, system_prompt)
+        schema = dict(ARENA_QUESTION_SCHEMA)
+        if "title" not in schema:
+            schema["title"] = "ArenaQuestionSchema"
+        structured_llm = self.model.with_structured_output(schema)
 
         try:
-            result = await agent.ainvoke({
-                "messages": [{"role": "user", "content": prompt_text}]
-            })
+            result = await structured_llm.ainvoke([
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=prompt_text),
+            ])
             
-            structured = result.get("structured_response")
-            if not structured:
+            if not result:
                 raise Exception("Failed to generate structured response")
             
-            return ArenaQuestionResponse(**structured)
+            return ArenaQuestionResponse(**result)
             
         except Exception as e:
             print(f"Error generating arena question: {e}")

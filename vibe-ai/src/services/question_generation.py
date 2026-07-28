@@ -4,8 +4,7 @@ from typing import Dict, List, Optional
 import asyncio
 from fastapi import HTTPException
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import create_agent
-from langchain.agents.structured_output import ToolStrategy
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from schema import SOL_SCHEMA, SML_SCHEMA, OTL_SCHEMA, NAT_SCHEMA, DES_SCHEMA
 from models import QuestionGenerationParameters
@@ -18,7 +17,7 @@ class QuestionGenerationService:
     backed by Gemini.
     """
 
-    DEFAULT_MODEL = "gemini-3.6-flash"
+    DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
@@ -83,14 +82,12 @@ class QuestionGenerationService:
             return result["questions"]
         return result
 
-    def _build_agent(self, model: ChatGoogleGenerativeAI, schema: dict, system_prompt: str):
-        """Create a LangChain agent with ToolStrategy structured output."""
-        return create_agent(
-            model=model,
-            tools=[],   # No external tools needed; model generates directly
-            response_format=ToolStrategy(schema),
-            system_prompt=system_prompt,
-        )
+    def _build_agent(self, model: ChatGoogleGenerativeAI, schema: dict):
+        """Create a Runnable with structured output."""
+        schema_copy = dict(schema) if schema else {}
+        if "title" not in schema_copy:
+            schema_copy["title"] = "QuestionSchema"
+        return model.with_structured_output(schema_copy)
 
     def _build_system_prompt(self) -> str:
         return (
@@ -263,17 +260,16 @@ class QuestionGenerationService:
                             question_type, count, segment_transcript, base_prompt
                         )
 
-                        # Build a fresh agent per call so the schema is correct
-                        # (ToolStrategy bakes the schema into the tool definition)
-                        agent = self._build_agent(model, schema, system_prompt)
+                        agent = self._build_agent(model, schema)
 
                         max_api_retries = 3
                         result = None
                         for attempt in range(max_api_retries):
                             try:
-                                result = await agent.ainvoke({
-                                    "messages": [{"role": "user", "content": prompt_text}]
-                                })
+                                result = await agent.ainvoke([
+                                    SystemMessage(content=system_prompt),
+                                    HumanMessage(content=prompt_text),
+                                ])
                                 break
                             except Exception as invoke_err:
                                 if "429" in str(invoke_err) or "RESOURCE_EXHAUSTED" in str(invoke_err):
@@ -286,7 +282,7 @@ class QuestionGenerationService:
                                     raise invoke_err
 
                         questions = self._unwrap_questions(
-                            result["structured_response"], count
+                            result, count
                         )
 
                         # Annotate with routing metadata
