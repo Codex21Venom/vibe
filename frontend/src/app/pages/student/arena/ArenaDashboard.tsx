@@ -7,11 +7,40 @@ import ArenaBattle from "./ArenaBattle";
 import ArenaBaitView from "./ArenaBaitView";
 import { useAuthStore } from "@/store/auth-store";
 import { useUserEnrollments } from "@/hooks/hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 type ArenaMode = 'pvc' | 'pvp' | null;
 type ArenaPhase = 'mode_selection' | 'course_selection' | 'baiting' | 'battle';
 
+export const MILESTONE_TIERS = [
+  { level: 1, threshold: 30, bait: 4 },
+  { level: 2, threshold: 50, bait: 8 },
+  { level: 3, threshold: 70, bait: 12 },
+  { level: 4, threshold: 90, bait: 16 },
+  { level: 5, threshold: 100, bait: 20 },
+];
+
+export function evaluateDynamicArenaState(currentProgress: number, completedMilestones: number[] = []) {
+  const unlockedThresholds = MILESTONE_TIERS.filter(m => currentProgress >= m.threshold);
+  const playableThresholds = unlockedThresholds.filter(m => !completedMilestones.includes(m.threshold));
+  const availableCredits = playableThresholds.length;
+  const activeTier = playableThresholds.length > 0 ? playableThresholds[0] : null;
+  const nextLockedTier = MILESTONE_TIERS.find(tier => currentProgress < tier.threshold) || null;
+
+  return {
+    currentProgress,
+    completedMilestones,
+    unlockedThresholds,
+    playableThresholds,
+    availableCredits,
+    activeTier,
+    nextLockedTier,
+    isFullyCompleted: completedMilestones.length === 5,
+  };
+}
+
 export default function ArenaDashboard() {
+  const queryClient = useQueryClient();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
@@ -31,12 +60,16 @@ export default function ArenaDashboard() {
         const response = await apiClient.get<any[]>('/arena/courses');
         const validCourses = response.data.filter(c => c.courseName && c.courseName !== "Unknown Course" && c.courseName.trim() !== "");
         
-        // Strictly use real-time progress from enrollments without fallback
+        // Strictly use real-time progress & completedMilestones from enrollments
         const coursesWithProgress = validCourses.map(course => {
           const enrollment = enrollments.find((e: any) => e.courseId === course.courseId || e.course?.id === course.courseId);
+          const percentCompleted = enrollment?.percentCompleted ?? course.progressPercent ?? 0;
+          const completedMilestones = enrollment?.arenaProgress?.completedMilestones || course.completedMilestones || [];
           return {
             ...course,
-            percentCompleted: enrollment?.percentCompleted ?? course.progressPercent ?? 0
+            percentCompleted,
+            completedMilestones,
+            eligibility: evaluateDynamicArenaState(percentCompleted, completedMilestones),
           };
         });
         
@@ -70,7 +103,9 @@ export default function ArenaDashboard() {
     }
   };
 
-  const handleStartGame = (finalBait: number) => {
+  const handleStartGame = async (finalBait: number) => {
+    await queryClient.invalidateQueries({ queryKey: ['user-enrollments'] });
+    await queryClient.invalidateQueries({ queryKey: ['arena-courses'] });
     setBaitedHp(finalBait);
     setPhase('battle');
   };
@@ -79,17 +114,31 @@ export default function ArenaDashboard() {
   const pvcPoints = Number(localStorage.getItem('arena_pvc_highest') || 0);
   const pvpPoints = Number(localStorage.getItem('arena_pvp_highest') || 0);
 
+  const selectedCourseData = courses.find(c => (c.courseId || c.cohortId) === selectedCourse);
+  const activeEligibility = selectedCourseData ? evaluateDynamicArenaState(selectedCourseData.percentCompleted, selectedCourseData.completedMilestones) : null;
+
   if (phase === 'battle' && selectedCourse) {
-    return <ArenaBattle courseId={selectedCourse} baitedHp={baitedHp} onExit={() => setPhase('mode_selection')} />;
+    return (
+      <ArenaBattle 
+        courseId={selectedCourse} 
+        baitedHp={baitedHp} 
+        milestoneThreshold={activeEligibility?.activeTier?.threshold}
+        onExit={async () => {
+          setPhase('course_selection');
+          await queryClient.invalidateQueries({ queryKey: ['user-enrollments'] });
+          await queryClient.invalidateQueries({ queryKey: ['arena-courses'] });
+        }} 
+      />
+    );
   }
 
   if (phase === 'baiting' && selectedCourse) {
-    const selectedCourseData = courses.find(c => (c.courseId || c.cohortId) === selectedCourse);
     return (
       <ArenaBaitView 
         courseId={selectedCourse} 
         courseName={selectedCourseData?.courseName || "Unknown Course"}
         maxHp={globalTotalHp}
+        activeTier={activeEligibility?.activeTier || null}
         onStartGame={handleStartGame}
         onBack={() => setPhase('course_selection')}
       />
@@ -187,29 +236,83 @@ export default function ArenaDashboard() {
                   </div>
                 ) : (
                   <div className="arena-course-grid">
-                    {courses.map((course: any) => (
-                      <div 
-                        key={course.courseId || course.cohortId}
-                        className={`arena-course-card ${selectedCourse === (course.courseId || course.cohortId) ? 'selected' : ''}`}
-                        onClick={() => {
-                          setSelectedCourse(course.courseId || course.cohortId);
-                          setShowPvpOpponents(false);
-                        }}
-                      >
-                        <div className="course-card-glow"></div>
-                        <div className="course-card-content">
-                          <h4 className="text-xl font-bold text-white mb-2">{course.courseName}</h4>
-                          <div className="flex items-center justify-between mt-2 gap-2">
-                            <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-md uppercase tracking-wider">
-                              Status: ACTIVE
-                            </span>
-                            <span className={`inline-block px-2 py-1 ${(course.percentCompleted ?? 0) >= 30 ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-400'} text-xs font-bold rounded-md`}>
-                              Progress: {course.percentCompleted ?? 0}%
-                            </span>
+                    {courses.map((course: any) => {
+                      const courseId = course.courseId || course.cohortId;
+                      const eligibility = course.eligibility || evaluateDynamicArenaState(course.percentCompleted ?? 0, course.completedMilestones || []);
+                      const isSelected = selectedCourse === courseId;
+
+                      return (
+                        <div 
+                          key={courseId}
+                          className={`arena-course-card ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setSelectedCourse(courseId);
+                            setShowPvpOpponents(false);
+                          }}
+                        >
+                          <div className="course-card-glow"></div>
+                          <div className="course-card-content">
+                            <h4 className="text-xl font-bold text-white mb-2">{course.courseName}</h4>
+                            <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
+                              <span className={`inline-block px-2 py-1 ${(course.percentCompleted ?? 0) >= 30 ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-400'} text-xs font-bold rounded-md`}>
+                                Progress: {course.percentCompleted ?? 0}%
+                              </span>
+                              {eligibility.availableCredits > 0 ? (
+                                <span className="inline-block px-2 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-md animate-pulse">
+                                  🎉 {eligibility.availableCredits} Play Credit{eligibility.availableCredits === 1 ? '' : 's'}
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2 py-1 bg-slate-800 text-slate-400 text-xs font-bold rounded-md">
+                                  0 Credits
+                                </span>
+                              )}
+                            </div>
+
+                            {/* 5-Tier Level Badges */}
+                            <div className="mt-4 pt-3 border-t border-slate-800">
+                              <p className="text-[11px] text-slate-400 uppercase font-semibold tracking-wider mb-2">Milestone Tiers:</p>
+                              <div className="flex gap-1 justify-between">
+                                {MILESTONE_TIERS.map(tier => {
+                                  const isCompleted = (course.completedMilestones || []).includes(tier.threshold);
+                                  const isActive = eligibility.activeTier && tier.threshold === eligibility.activeTier.threshold;
+                                  const isLocked = tier.threshold > (course.percentCompleted ?? 0);
+
+                                  let badgeClass = "bg-slate-900/80 border-slate-800/80 text-slate-600 cursor-not-allowed";
+                                  let label = `L${tier.level} ${tier.bait}HP`;
+
+                                  if (isCompleted) {
+                                    badgeClass = "bg-slate-800 text-slate-400 border-slate-700 font-semibold cursor-not-allowed";
+                                    label = `✓ L${tier.level} ${tier.bait}HP`;
+                                  } else if (isActive) {
+                                    badgeClass = "bg-purple-950/90 border-purple-400 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.5)] font-bold animate-pulse cursor-pointer hover:border-purple-300";
+                                    label = `L${tier.level} ${tier.bait}HP ACTIVE`;
+                                  } else if (!isLocked) {
+                                    badgeClass = "bg-slate-800/90 border-slate-700 text-slate-300 font-medium";
+                                  }
+
+                                  return (
+                                    <div 
+                                      key={tier.level}
+                                      title={`Level ${tier.level} (${tier.threshold}% progress) - Bait: ${tier.bait} HP`}
+                                      onClick={(e) => {
+                                        if (isActive) {
+                                          e.stopPropagation();
+                                          setSelectedCourse(courseId);
+                                          handleEnterBattle();
+                                        }
+                                      }}
+                                      className={`px-1.5 py-1 rounded border text-[9px] text-center flex-1 transition-all ${badgeClass}`}
+                                    >
+                                      <div>{label}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 

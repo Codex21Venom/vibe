@@ -8,6 +8,27 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from arena_schema import ARENA_QUESTION_SCHEMA
 from models import ArenaQuestionRequest, ArenaQuestionResponse
 
+def extract_transcript_text(scoped_items: List[Dict[str, Any]]) -> str:
+    """
+    Extracts transcript text from scoped items.
+    """
+    transcripts = []
+    for item in scoped_items:
+        text = item.get("transcript") or item.get("text") or item.get("content") or ""
+        if text:
+            transcripts.append(str(text))
+    return "\n".join(transcripts)
+
+def get_course_context_for_progress(items: List[Dict[str, Any]], progress_percent: float) -> str:
+    """
+    Filters course items where sequence index is <= progressPercent and extracts transcript text.
+    """
+    if not items:
+        return ""
+    cutoff_index = int(len(items) * (progress_percent / 100.0))
+    scoped_items = items[:max(1, cutoff_index)]
+    return extract_transcript_text(scoped_items)
+
 class ArenaService:
     DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
