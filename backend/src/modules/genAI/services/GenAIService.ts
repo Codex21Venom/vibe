@@ -1667,8 +1667,7 @@ export class GenAIService extends BaseService {
         await this.genAIRepository.update(jobId, jobData, session);
         
         try {
-          // Fallback to aiConfig server port (9017) if VIBE_AI_SERVER_URL is unset
-          const aiServerUrl = process.env.VIBE_AI_SERVER_URL || `http://${aiConfig.serverIP}:${aiConfig.serverPort}`;
+          const aiServerUrl = process.env.VIBE_AI_SERVER_URL || 'http://127.0.0.1:8017';
           await axios.delete(`${aiServerUrl}/jobs/${jobId}/audio`);
           console.log(`Cleaned up temp audio for job ${jobId}`);
         } catch (cleanupErr) {

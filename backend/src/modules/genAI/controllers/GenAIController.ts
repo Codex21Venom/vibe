@@ -38,7 +38,6 @@ import { BadRequestErrorResponse, ForbiddenErrorResponse } from "#root/shared/in
 import { Ability } from "#root/shared/functions/AbilityDecorator.js";
 import { getGenAIAbility } from "../abilities/genAIAbilities.js";
 import { subject } from "@casl/ability";
-import { aiConfig } from "#root/config/ai.js";
 import { SseService } from "../services/sseService.js";
 
 @OpenAPI({
@@ -426,8 +425,7 @@ export class GenAIController {
   @Get("/temp_files/:fileId")
   async getTempFile(@Params() params: { fileId: string }, @Res() res: ExpressResponse) {
     const { fileId } = params;
-    // Fallback to aiConfig server port (9017) if VIBE_AI_SERVER_URL is unset
-    const aiServerUrl = process.env.VIBE_AI_SERVER_URL || `http://${aiConfig.serverIP}:${aiConfig.serverPort}`;
+    const aiServerUrl = process.env.VIBE_AI_SERVER_URL || 'http://localhost:8017';
     try {
       const response = await fetch(`${aiServerUrl}/jobs/temp_files/${fileId}`);
       if (response.ok) {
