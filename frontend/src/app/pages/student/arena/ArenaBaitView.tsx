@@ -96,10 +96,11 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
 
             {/* Milestones */}
             <section>
-              <h4 className="text-lg font-semibold text-purple-300 mb-2 border-b border-purple-500/20 pb-1">3. Milestone Rewards</h4>
+              <h4 className="text-lg font-semibold text-purple-300 mb-2 border-b border-purple-500/20 pb-1">3. Milestone Rewards & Scoring</h4>
               <ul className="list-disc pl-5 space-y-2">
-                <li><span className="text-yellow-400 font-bold">Power-Up Drop:</span> Every <strong className="text-white">150 points</strong> reached, receive 1 random Power-Up (Max 3).</li>
+                <li><span className="text-yellow-400 font-bold">Power-Up Drop:</span> Every <strong className="text-white">100 points</strong> reached, receive 1 random Power-Up (Max 3 slots).</li>
                 <li><span className="text-blue-400 font-bold">HP Regeneration:</span> Every <strong className="text-white">500 points</strong> reached, instantly earn <strong className="text-green-400">+10 HP</strong> directly to your global pool!</li>
+                <li><span className="text-emerald-400 font-bold">Non-Negative Points Floor:</span> Points will never drop below 0. Loss deductions only apply if current points are greater than 0.</li>
               </ul>
             </section>
 

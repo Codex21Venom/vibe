@@ -515,7 +515,7 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
                 <p><strong className="text-white">Three of a kind:</strong> 2.5x Multiplier</p>
                 <p><strong className="text-white">Flush:</strong> 3.0x Multiplier</p>
                 <p><strong className="text-white">Full House:</strong> 4.0x Multiplier</p>
-                <p className="mt-2 text-yellow-400 border-t border-slate-700 pt-3">Every 150 Pts: Random Power-Up</p>
+                <p className="mt-2 text-yellow-400 border-t border-slate-700 pt-3">Every 100 Pts: Random Power-Up (Max 3 Slots)</p>
                 <p className="text-green-400">Every 500 Pts: +10 HP Instantly</p>
               </div>
             </div>
@@ -691,34 +691,51 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
       
       {/* Bottom Left: Power-ups Inventory */}
       <div className="absolute bottom-6 left-4 sm:left-6 z-30 flex flex-col pointer-events-auto">
-        <span className="text-amber-400 font-bold tracking-widest uppercase mb-2 text-[10px] sm:text-xs drop-shadow-md">Inventory (Max 3)</span>
+        <span className="text-amber-400 font-bold tracking-widest uppercase mb-2 text-[10px] sm:text-xs drop-shadow-md">Power-Up Slots (Max 3)</span>
         <div className="flex gap-2 sm:gap-3">
-          {inventory.length === 0 && (
-            <div className="w-12 h-16 sm:w-16 sm:h-24 border-2 border-dashed border-slate-700/80 bg-slate-900/50 rounded-xl flex items-center justify-center text-slate-500 text-[10px] sm:text-xs text-center p-1 sm:p-2 backdrop-blur-sm shadow-inner">Empty</div>
-          )}
-          {inventory.map((powerup, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => {
-                if (roundState === 'playing') {
-                   setSelectedPowerUp(prev => prev === powerup ? null : powerup);
-                }
-              }}
-              className={`group relative flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600 rounded-xl cursor-pointer transition-all ${selectedPowerUp === powerup ? 'ring-2 ring-amber-400 -translate-y-2 sm:-translate-y-4 scale-110 shadow-[0_0_20px_rgba(245,158,11,0.6)]' : 'hover:-translate-y-2 hover:border-slate-400 shadow-lg'}`}
-              style={{ width: '60px', height: '80px' }}
-              title={`Use ${powerup}`}
-            >
-              <div className="text-amber-400 mb-1"><Zap size={20}/></div>
-              <div className="text-[9px] sm:text-[10px] font-black text-center text-white leading-tight px-1 group-hover:hidden">{powerup}</div>
-              <div className="text-[7px] sm:text-[8px] font-bold text-amber-200 text-center leading-tight px-1 hidden group-hover:block">{POWERUP_DESCRIPTIONS[powerup] || powerup}</div>
-              
-              {selectedPowerUp === powerup && (
-                <div className="absolute -top-16 w-32 bg-slate-900/95 text-amber-300 text-[10px] p-2 rounded-lg border border-amber-500/50 z-50 text-center hidden sm:block pointer-events-none shadow-xl backdrop-blur">
-                  {POWERUP_DESCRIPTIONS[powerup] || powerup}
+          {[0, 1, 2].map((slotIdx) => {
+            const powerup = inventory[slotIdx];
+            if (powerup) {
+              const isSelected = selectedPowerUp === powerup;
+              return (
+                <div 
+                  key={slotIdx} 
+                  onClick={() => {
+                    if (roundState === 'playing') {
+                      setSelectedPowerUp(prev => prev === powerup ? null : powerup);
+                    }
+                  }}
+                  className={`group relative flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 border border-amber-500/50 rounded-xl cursor-pointer transition-all ${
+                    isSelected 
+                      ? 'ring-2 ring-amber-400 -translate-y-2 sm:-translate-y-4 scale-110 shadow-[0_0_20px_rgba(245,158,11,0.6)] z-20' 
+                      : 'hover:-translate-y-2 hover:border-amber-400 shadow-lg z-10'
+                  }`}
+                  style={{ width: '64px', height: '84px' }}
+                  title={`Slot ${slotIdx + 1}: ${powerup}`}
+                >
+                  <div className="text-amber-400 mb-1"><Zap size={20}/></div>
+                  <div className="text-[9px] sm:text-[10px] font-black text-center text-white leading-tight px-1 group-hover:hidden">{powerup}</div>
+                  <div className="text-[7px] sm:text-[8px] font-bold text-amber-200 text-center leading-tight px-1 hidden group-hover:block">{POWERUP_DESCRIPTIONS[powerup] || powerup}</div>
+                  
+                  {isSelected && (
+                    <div className="absolute -top-16 w-32 bg-slate-900/95 text-amber-300 text-[10px] p-2 rounded-lg border border-amber-500/50 z-50 text-center hidden sm:block pointer-events-none shadow-xl backdrop-blur">
+                      {POWERUP_DESCRIPTIONS[powerup] || powerup}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            }
+            return (
+              <div 
+                key={slotIdx}
+                className="w-[64px] h-[84px] border-2 border-dashed border-slate-700/80 bg-slate-900/40 rounded-xl flex flex-col items-center justify-center text-slate-500 text-[10px] sm:text-xs text-center p-1 backdrop-blur-sm shadow-inner"
+                title={`Slot ${slotIdx + 1}: Empty`}
+              >
+                <span className="text-slate-500 font-bold mb-1">Slot {slotIdx + 1}</span>
+                <span className="text-[9px] text-slate-600">Empty</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
