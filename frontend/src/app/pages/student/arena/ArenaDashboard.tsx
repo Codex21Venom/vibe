@@ -18,16 +18,21 @@ export default function ArenaDashboard() {
   const [mode, setMode] = useState<ArenaMode>(null);
   const [phase, setPhase] = useState<ArenaPhase>('mode_selection');
   const [baitedHp, setBaitedHp] = useState<number>(0);
+  const [showPvpOpponents, setShowPvpOpponents] = useState(false);
 
-  const { totalHp: hookTotalHp, isLoading: hpLoading } = useHpStudentCohorts();
-  const globalTotalHp = hookTotalHp ?? 0;
-
+  // Fallback to fetch real enrolled courses since cohorts endpoint might be empty
   useEffect(() => {
-    // Fetch courses enrolled by the student
     const fetchCourses = async () => {
       try {
         const response = await apiClient.get<any[]>('/arena/courses');
-        setCourses(response.data);
+        // Filter out unknown or obsolete courses
+        const validCourses = response.data.filter(c => c.courseName && c.courseName !== "Unknown Course" && c.courseName.trim() !== "");
+        setCourses(validCourses);
+        
+        // Sync the real HP derived from active courses to localStorage so cohorts.tsx can read it
+        const baseHp = validCourses.length * 100;
+        localStorage.setItem('arena_base_hp', baseHp.toString());
+        window.dispatchEvent(new Event('storage'));
       } catch (err) {
         console.error("Failed to load arena courses", err);
       } finally {
@@ -40,14 +45,14 @@ export default function ArenaDashboard() {
   const handleModeSelect = (selectedMode: ArenaMode) => {
     setMode(selectedMode);
     setPhase('course_selection');
+    setShowPvpOpponents(false);
   };
 
   const handleEnterBattle = () => {
     if (mode === 'pvc') {
       setPhase('baiting');
     } else {
-      // PvP not fully implemented yet, just acknowledge
-      alert("PvP mode battle logic is under construction.");
+      setShowPvpOpponents(true);
     }
   };
 
@@ -56,12 +61,16 @@ export default function ArenaDashboard() {
     setPhase('battle');
   };
 
+  const globalTotalHp = (courses.length * 100) + Number(localStorage.getItem('arena_hp_delta') || 0);
+  const pvcPoints = Number(localStorage.getItem('arena_pvc_points') || 0);
+  const pvpPoints = Number(localStorage.getItem('arena_pvp_points') || 0);
+
   if (phase === 'battle' && selectedCourse) {
     return <ArenaBattle courseId={selectedCourse} baitedHp={baitedHp} onExit={() => setPhase('mode_selection')} />;
   }
 
   if (phase === 'baiting' && selectedCourse) {
-    const selectedCourseData = courses.find(c => c.courseId === selectedCourse);
+    const selectedCourseData = courses.find(c => (c.courseId || c.cohortId) === selectedCourse);
     return (
       <ArenaBaitView 
         courseId={selectedCourse} 
@@ -90,20 +99,32 @@ export default function ArenaDashboard() {
             <div className="arena-mode-grid">
               {/* Player vs Computer Card */}
               <div className="arena-mode-card mode-pvc" onClick={() => handleModeSelect('pvc')}>
-                <div className="mode-icon">
-                  <MonitorPlay size={48} />
+                <div className="card-content">
+                  <div className="mode-icon">
+                    <MonitorPlay size={48} />
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-3 tracking-wide">Player vs AI</h3>
+                  <p className="text-slate-300 font-medium px-4">Test your knowledge against an advanced AI opponent.</p>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Player vs Computer</h3>
-                <p className="text-slate-300">Test your knowledge against an AI opponent.</p>
+                <div className="mt-8 pt-6 border-t border-purple-500/30 w-full relative z-10">
+                  <p className="text-xs text-purple-400 font-bold uppercase tracking-widest mb-1">Total Points Earned</p>
+                  <p className="text-4xl font-mono font-black text-white drop-shadow-md">{pvcPoints}</p>
+                </div>
               </div>
 
               {/* Player vs Live Player Card */}
               <div className="arena-mode-card mode-pvp" onClick={() => handleModeSelect('pvp')}>
-                <div className="mode-icon">
-                  <Users size={48} />
+                <div className="card-content">
+                  <div className="mode-icon">
+                    <Users size={48} />
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-3 tracking-wide">PvP Combat</h3>
+                  <p className="text-slate-300 font-medium px-4">Challenge other students in real-time knowledge combat.</p>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Player vs Live Player</h3>
-                <p className="text-slate-300">Challenge other students in real-time combat.</p>
+                <div className="mt-8 pt-6 border-t border-pink-500/30 w-full relative z-10">
+                  <p className="text-xs text-pink-400 font-bold uppercase tracking-widest mb-1">Total Points Earned</p>
+                  <p className="text-4xl font-mono font-black text-white drop-shadow-md">{pvpPoints}</p>
+                </div>
               </div>
             </div>
 
@@ -114,7 +135,7 @@ export default function ArenaDashboard() {
                   <span className="text-2xl">⚡</span> Global HP
                 </span>
                 <span className="text-xl font-bold text-white">
-                  {hpLoading ? "..." : globalTotalHp} HP
+                  {loading ? "..." : globalTotalHp} HP
                 </span>
               </div>
               <div className="hp-bar-wrapper">
@@ -147,20 +168,27 @@ export default function ArenaDashboard() {
             ) : (
               <div className="arena-course-selection">
                 {courses.length === 0 ? (
-                  <p className="text-slate-400">You are not enrolled in any active courses.</p>
+                  <div className="text-center p-12 bg-slate-900/50 rounded-xl border border-slate-800 col-span-full">
+                    <p className="text-slate-400 text-lg">No active course enrolled to play.</p>
+                  </div>
                 ) : (
                   <div className="arena-course-grid">
-                    {courses.map((course) => (
+                    {courses.map((course: any) => (
                       <div 
-                        key={course.courseId} 
-                        className={`arena-course-card ${selectedCourse === course.courseId ? 'selected' : ''}`}
-                        onClick={() => setSelectedCourse(course.courseId)}
+                        key={course.courseId || course.cohortId}
+                        className={`arena-course-card ${selectedCourse === (course.courseId || course.cohortId) ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSelectedCourse(course.courseId || course.cohortId);
+                          setShowPvpOpponents(false);
+                        }}
                       >
-                        <div className="course-card-content">
-                          <h3 className="text-xl font-bold text-white mb-2">{course.courseName}</h3>
-                          <p className="text-sm text-slate-300">Status: {course.status}</p>
-                        </div>
                         <div className="course-card-glow"></div>
+                        <div className="course-card-content">
+                          <h4 className="text-xl font-bold text-white mb-2">{course.courseName}</h4>
+                          <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-md uppercase tracking-wider">
+                            Status: ACTIVE
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -173,18 +201,31 @@ export default function ArenaDashboard() {
                         You need at least 50 HP to enter the Arena. Complete more activities to earn HP!
                       </div>
                     ) : null}
-                    <div className="flex gap-4 justify-center w-full">
+                    <div className="flex justify-center w-full mt-4">
                       <button 
                         onClick={handleEnterBattle} 
-                        className="arena-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="arena-btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-xl py-4 px-12"
                         disabled={globalTotalHp < 50 && mode === 'pvc'}
                       >
                         <span>{mode === 'pvc' ? 'Enter Battle' : 'Find Opponent'}</span>
                       </button>
-                      <button className="arena-btn-secondary">
-                        Edit Deck
-                      </button>
                     </div>
+
+                    {/* PvP Opponents List Mockup */}
+                    {mode === 'pvp' && showPvpOpponents && (
+                      <div className="mt-12 w-full max-w-3xl bg-slate-900/80 rounded-2xl border border-pink-500/30 p-8 shadow-[0_0_40px_rgba(254,143,181,0.15)] animate-in fade-in slide-in-from-top-4 duration-500">
+                        <h3 className="text-2xl font-bold text-white mb-6 flex items-center justify-center gap-3">
+                          <Users className="text-pink-400 w-8 h-8" />
+                          Live Opponents Found
+                        </h3>
+                        <div className="space-y-4">
+                          <div className="flex flex-col items-center justify-center p-12 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                            <div className="w-10 h-10 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin mb-4"></div>
+                            <p className="text-slate-400 font-medium">Scanning for live opponents in this course...</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

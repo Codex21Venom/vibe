@@ -6409,7 +6409,9 @@ import {
   HpLedgerTransformerEntry,
   LedgerListResponse,
   LedgerStudentDetails,
-  HpCohortOverviewStats,
+} from '@/lib/api/hp-system';
+import { apiClient } from "@/lib/api-client";
+import {
   HpStudentSubmission,
   HpStudentSubmissionStats,
   HpCohortsResponse,
@@ -6487,7 +6489,21 @@ export function useHpStudentCohorts() {
     queryFn: async () => {
       const res = await hpApi.getStudentCohorts();
       if (!res.success) throw new Error(res.message || 'Failed to load your cohorts');
-      return res;
+      
+      // Fetch real courses to derive the true active base HP
+      let activeCourses = 0;
+      try {
+        const coursesRes = await apiClient.get<any[]>('/arena/courses');
+        const validCourses = coursesRes.data.filter(c => c.courseName && c.courseName !== "Unknown Course" && c.courseName.trim() !== "");
+        activeCourses = validCourses.length;
+      } catch (e) {
+        console.error("Failed to fetch courses for HP calculation", e);
+      }
+
+      return {
+        ...res,
+        derivedBaseHp: activeCourses * 100
+      };
     },
     refetchOnWindowFocus: false,
   });
@@ -6495,7 +6511,7 @@ export function useHpStudentCohorts() {
   
   return {
     data: query.data?.data || [],
-    totalHp: query.data?.totalHp ?? 0,
+    totalHp: (query.data?.derivedBaseHp || 0) + Number(localStorage.getItem('arena_hp_delta') || 0),
     isLoading: query.isLoading,
     error: query.error ? (query.error as Error).message : null,
     refetch: query.refetch,
