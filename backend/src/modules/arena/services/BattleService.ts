@@ -48,14 +48,7 @@ export class BattleService {
         isCompleted: true
       }).toArray();
 
-      const watchTimeCol = await this.arenaRepo.getCollection('watchTime');
-      const watchTimeDistinct = await watchTimeCol.distinct('itemId', {
-        $or: [{ userId: userObjId }, { userId: userId }],
-        courseId: { $in: [courseObjId, courseId] },
-        endTime: { $exists: true, $ne: null }
-      });
-      
-      completedItemIds = watchTimeDistinct.map((id: any) => id.toString());
+      completedItemIds = completedDocs.map((doc: any) => doc.itemId?.toString()).filter(Boolean);
 
     } catch (err) {
       console.error('Error computing course progress in BattleService:', err);
