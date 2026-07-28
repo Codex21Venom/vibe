@@ -5,6 +5,8 @@ import { MonitorPlay, Users } from "lucide-react";
 import "./arena.css";
 import ArenaBattle from "./ArenaBattle";
 import ArenaBaitView from "./ArenaBaitView";
+import { useAuthStore } from "@/store/auth-store";
+import { useUserEnrollments } from "@/hooks/hooks";
 
 type ArenaMode = 'pvc' | 'pvp' | null;
 type ArenaPhase = 'mode_selection' | 'course_selection' | 'baiting' | 'battle';
@@ -19,12 +21,26 @@ export default function ArenaDashboard() {
   const [baitedHp, setBaitedHp] = useState<number>(0);
   const [showPvpOpponents, setShowPvpOpponents] = useState(false);
 
+  const { token } = useAuthStore();
+  const { data: enrollmentsData } = useUserEnrollments(1, 100, !!token);
+  const enrollments = enrollmentsData?.enrollments || [];
+
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const response = await apiClient.get<any[]>('/arena/courses');
         const validCourses = response.data.filter(c => c.courseName && c.courseName !== "Unknown Course" && c.courseName.trim() !== "");
-        setCourses(validCourses);
+        
+        // Merge progress from enrollments
+        const coursesWithProgress = validCourses.map(course => {
+          const enrollment = enrollments.find((e: any) => e.courseId === course.courseId || e.course?.id === course.courseId);
+          return {
+            ...course,
+            percentCompleted: enrollment?.percentCompleted || 0
+          };
+        });
+        
+        setCourses(coursesWithProgress);
         
         const baseHp = validCourses.length * 100;
         localStorage.setItem('arena_base_hp', baseHp.toString());
@@ -35,8 +51,10 @@ export default function ArenaDashboard() {
         setLoading(false);
       }
     };
-    fetchCourses();
-  }, []);
+    if (enrollmentsData) {
+      fetchCourses();
+    }
+  }, [enrollmentsData]);
 
   const handleModeSelect = (selectedMode: ArenaMode) => {
     setMode(selectedMode);
@@ -58,8 +76,8 @@ export default function ArenaDashboard() {
   };
 
   const globalTotalHp = (courses.length * 100) + Number(localStorage.getItem('arena_hp_delta') || 0);
-  const pvcPoints = Number(localStorage.getItem('arena_pvc_points') || 0);
-  const pvpPoints = Number(localStorage.getItem('arena_pvp_points') || 0);
+  const pvcPoints = Number(localStorage.getItem('arena_pvc_highest') || 0);
+  const pvpPoints = Number(localStorage.getItem('arena_pvp_highest') || 0);
 
   if (phase === 'battle' && selectedCourse) {
     return <ArenaBattle courseId={selectedCourse} baitedHp={baitedHp} onExit={() => setPhase('mode_selection')} />;
@@ -103,7 +121,7 @@ export default function ArenaDashboard() {
                   <p className="text-slate-300 font-medium px-4">Test your knowledge against an advanced AI opponent.</p>
                 </div>
                 <div className="mt-8 pt-6 border-t border-purple-500/30 w-full relative z-10">
-                  <p className="text-xs text-purple-400 font-bold uppercase tracking-widest mb-1">Total Points Earned</p>
+                  <p className="text-xs text-purple-400 font-bold uppercase tracking-widest mb-1">Highest Score</p>
                   <p className="text-4xl font-mono font-black text-white drop-shadow-md">{pvcPoints}</p>
                 </div>
               </div>
@@ -118,7 +136,7 @@ export default function ArenaDashboard() {
                   <p className="text-slate-300 font-medium px-4">Challenge other students in real-time knowledge combat.</p>
                 </div>
                 <div className="mt-8 pt-6 border-t border-pink-500/30 w-full relative z-10">
-                  <p className="text-xs text-pink-400 font-bold uppercase tracking-widest mb-1">Total Points Earned</p>
+                  <p className="text-xs text-pink-400 font-bold uppercase tracking-widest mb-1">Highest Score</p>
                   <p className="text-4xl font-mono font-black text-white drop-shadow-md">{pvpPoints}</p>
                 </div>
               </div>
@@ -185,8 +203,8 @@ export default function ArenaDashboard() {
                             <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-md uppercase tracking-wider">
                               Status: ACTIVE
                             </span>
-                            <span className={`inline-block px-2 py-1 ${(course.progressPercent ?? 0) >= 30 ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-400'} text-xs font-bold rounded-md`}>
-                              Progress: {course.progressPercent ?? 0}%
+                            <span className={`inline-block px-2 py-1 ${(course.percentCompleted ?? 0) >= 30 ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-400'} text-xs font-bold rounded-md`}>
+                              Progress: {course.percentCompleted ?? 0}%
                             </span>
                           </div>
                         </div>
@@ -197,7 +215,7 @@ export default function ArenaDashboard() {
                 
                 {selectedCourse && (() => {
                   const selectedCourseData = courses.find(c => (c.courseId || c.cohortId) === selectedCourse);
-                  const currentProgress = selectedCourseData?.progressPercent ?? 0;
+                  const currentProgress = selectedCourseData?.percentCompleted ?? 0;
                   const isProgressInsufficient = currentProgress < 30;
                   const isHpInsufficient = globalTotalHp < 50;
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AuroraText } from "@/components/magicui/aurora-text";
-import { Shield, Swords } from "lucide-react";
+import { Shield, Swords, Gamepad2, Info } from "lucide-react";
 
 interface ArenaBaitViewProps {
   courseId: string;
@@ -29,99 +29,149 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
       setComputerBait(generatedBait);
       setIsBaiting(false);
       setBaitConfirmed(true);
-    }, 1500);
+    }, 1000);
   };
 
   return (
-    <div className="arena-bait-container">
+    <div className="arena-bait-container max-w-6xl mx-auto w-full">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Bet Phase: {courseName}</h2>
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Gamepad2 className="text-purple-400" />
+          Arena Lobby: {courseName}
+        </h2>
         <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
-          Back to Course Selection
+          &larr; Back to Course Selection
         </button>
       </div>
 
-      <div className="bait-deck-area bg-[#1a1a24] p-8 rounded-2xl border border-purple-500/30 shadow-[0_0_30px_rgba(160,124,254,0.1)]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          
-          {/* Player Bet Section */}
-          <div className="player-bait-panel flex flex-col items-center justify-center p-6 bg-slate-800/50 rounded-xl border-2 border-blue-500/50 relative overflow-hidden">
-            <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-xl"></div>
-            <h3 className="text-xl font-bold text-blue-400 mb-6 z-10">Your Bet</h3>
-            
-            {!baitConfirmed ? (
-              <div className="z-10 flex flex-col items-center w-full max-w-xs">
-                <input 
-                  type="number" 
-                  min="1"
-                  max={maxHp}
-                  value={playerBait || ""}
-                  onChange={(e) => setPlayerBait(Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-4 text-center text-3xl font-bold text-white mb-4 focus:outline-none focus:border-blue-400"
-                  placeholder="0 HP"
-                  disabled={isBaiting}
-                />
-                <p className="text-sm text-slate-400 mb-6">Available HP: {maxHp}</p>
-                <button 
-                  onClick={handleConfirmBait}
-                  disabled={isBaiting || playerBait <= 0 || playerBait > maxHp}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isBaiting ? "Locking in..." : "Confirm Bet"}
-                </button>
-              </div>
-            ) : (
-              <div className="z-10 flex flex-col items-center">
-                <div className="text-6xl font-black text-blue-400 mb-4">{playerBait}</div>
-                <div className="text-slate-300 font-medium">HP Locked In</div>
-              </div>
-            )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Game Rules Section */}
+        <div className="lg:col-span-2 bg-[#1a1a24]/90 p-6 rounded-2xl border border-purple-500/30 shadow-[0_0_30px_rgba(160,124,254,0.05)] overflow-y-auto max-h-[70vh] custom-scrollbar">
+          <div className="flex items-center gap-3 mb-6">
+            <Info className="text-blue-400 w-6 h-6" />
+            <h3 className="text-xl font-bold text-white">Card Game Rules</h3>
           </div>
-
-          {/* Computer Bet Section */}
-          <div className="computer-bait-panel flex flex-col items-center justify-center p-6 bg-slate-800/50 rounded-xl border-2 border-red-500/50 relative overflow-hidden">
-            <div className="absolute inset-0 bg-red-500/10 blur-xl rounded-xl"></div>
-            <h3 className="text-xl font-bold text-red-400 mb-6 z-10">Computer's Bet</h3>
+          
+          <div className="space-y-6 text-slate-300 text-sm">
             
-            <div className="z-10 flex flex-col items-center justify-center h-full min-h-[150px]">
-              {isBaiting ? (
-                <div className="flex space-x-2 animate-pulse">
-                  <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                  <div className="w-4 h-4 bg-red-500 rounded-full animation-delay-200"></div>
-                  <div className="w-4 h-4 bg-red-500 rounded-full animation-delay-400"></div>
-                </div>
-              ) : baitConfirmed && computerBait !== null ? (
-                <div className="flex flex-col items-center">
-                  <div className="text-6xl font-black text-red-400 mb-4">{computerBait}</div>
-                  <div className="text-slate-300 font-medium">HP Locked In</div>
+            {/* Base Scoring */}
+            <section>
+              <h4 className="text-lg font-semibold text-purple-300 mb-2 border-b border-purple-500/20 pb-1">1. Base Scoring</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><span className="text-green-400 font-bold">Win:</span> +50 Base Points</li>
+                <li><span className="text-red-400 font-bold">Loss:</span> -30 Base Points</li>
+              </ul>
+            </section>
+
+            {/* Combinations */}
+            <section>
+              <h4 className="text-lg font-semibold text-purple-300 mb-2 border-b border-purple-500/20 pb-1">2. Combinations & Multipliers</h4>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-slate-400 border-b border-slate-700">
+                      <th className="pb-2">Hand</th>
+                      <th className="pb-2">Requirement</th>
+                      <th className="pb-2 text-right">Multiplier</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    <tr><td className="py-2 font-medium">Pair</td><td className="py-2">2 matching cards</td><td className="py-2 text-right text-blue-300">1.5x</td></tr>
+                    <tr><td className="py-2 font-medium">Three of a Kind</td><td className="py-2">3 matching cards (ordered)</td><td className="py-2 text-right text-green-300">2.5x</td></tr>
+                    <tr><td className="py-2 font-medium">Flush</td><td className="py-2">4 cards of same suit/category</td><td className="py-2 text-right text-purple-300">3.0x</td></tr>
+                    <tr><td className="py-2 font-medium">Full House</td><td className="py-2">3 of a kind + Pair</td><td className="py-2 text-right text-pink-300">4.0x</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* Milestones */}
+            <section>
+              <h4 className="text-lg font-semibold text-purple-300 mb-2 border-b border-purple-500/20 pb-1">3. Milestone Rewards</h4>
+              <ul className="list-disc pl-5 space-y-2">
+                <li><span className="text-yellow-400 font-bold">Power-Up Drop:</span> Every <strong className="text-white">150 points</strong> reached, receive 1 random Power-Up (Max 3).</li>
+                <li><span className="text-blue-400 font-bold">HP Regeneration:</span> Every <strong className="text-white">500 points</strong> reached, instantly earn <strong className="text-green-400">+10 HP</strong> directly to your global pool!</li>
+              </ul>
+            </section>
+
+            {/* Power-Ups */}
+            <section>
+              <h4 className="text-lg font-semibold text-purple-300 mb-2 border-b border-purple-500/20 pb-1">4. Power-Ups Dictionary</h4>
+              <ul className="space-y-2">
+                <li>🛡️ <strong>Shield:</strong> Prevents point loss on the next loss.</li>
+                <li>🃏 <strong>Wildcard:</strong> Substitute for any card to complete a combo.</li>
+                <li>⚡ <strong>Quick Counter:</strong> Win 2 turns after activation to permanently double (2x) all future point gains.</li>
+                <li>🤡 <strong>The Joker:</strong> Automatically plays the optimal combo for max points.</li>
+                <li>🔄 <strong>Reversal:</strong> Reverses opponent outcome (Win becomes Loss, etc.).</li>
+                <li>🛑 <strong>Blocker:</strong> Blocks 1 targeted card from opponent's hand.</li>
+              </ul>
+            </section>
+
+          </div>
+        </div>
+
+        {/* Betting Section */}
+        <div className="flex flex-col gap-6">
+          <div className="bg-[#1a1a24] p-6 rounded-2xl border border-purple-500/30 shadow-[0_0_30px_rgba(160,124,254,0.1)] flex flex-col h-full">
+            <h3 className="text-xl font-bold text-center text-white mb-6">Establish Bet Pool</h3>
+            
+            <div className="flex-1 flex flex-col justify-center gap-6">
+              {!baitConfirmed ? (
+                <div className="flex flex-col items-center w-full">
+                  <label className="text-sm font-medium text-slate-400 mb-2">Your HP Bet (Max {maxHp})</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    max={maxHp}
+                    value={playerBait || ""}
+                    onChange={(e) => setPlayerBait(Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-4 text-center text-3xl font-bold text-white mb-4 focus:outline-none focus:border-purple-400"
+                    placeholder="0 HP"
+                    disabled={isBaiting}
+                  />
+                  <button 
+                    onClick={handleConfirmBait}
+                    disabled={isBaiting || playerBait <= 0 || playerBait > maxHp}
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                  >
+                    {isBaiting ? "Locking in..." : "Confirm Bet"}
+                  </button>
                 </div>
               ) : (
-                <div className="text-slate-500 font-medium text-center">
-                  Waiting for your move...
+                <div className="flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300">
+                  <div className="flex w-full justify-between items-center bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                    <div className="text-center">
+                      <span className="block text-xs text-slate-400 mb-1">Your Bet</span>
+                      <span className="text-2xl font-black text-blue-400">{playerBait}</span>
+                    </div>
+                    <div className="text-xl font-bold text-slate-500">vs</div>
+                    <div className="text-center">
+                      <span className="block text-xs text-slate-400 mb-1">AI Bet</span>
+                      <span className="text-2xl font-black text-red-400">{computerBait}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center mt-4">
+                    <p className="text-sm text-slate-400 mb-1">Total Bet Pool:</p>
+                    <h4 className="text-4xl font-bold text-purple-400 mb-6">
+                      <AuroraText>{playerBait + (computerBait || 0)} HP</AuroraText>
+                    </h4>
+                    
+                    <button 
+                      onClick={() => onStartGame(playerBait)}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold py-4 px-6 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transform hover:scale-105 transition-all text-xl flex items-center justify-center gap-3"
+                    >
+                      <Swords className="w-6 h-6" />
+                      START MATCH
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
-
         </div>
 
-        {/* Start Game Button (only shows when both bets are confirmed) */}
-        {baitConfirmed && (
-          <div className="mt-12 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center mb-6">
-              <p className="text-lg text-slate-300 mb-2">Total Net HP Bet Pool:</p>
-              <h4 className="text-4xl font-bold text-purple-400"><AuroraText>{playerBait + (computerBait || 0)} HP</AuroraText></h4>
-            </div>
-            
-            <button 
-              onClick={() => onStartGame(playerBait)}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-4 px-12 rounded-full shadow-[0_0_20px_rgba(160,124,254,0.4)] hover:shadow-[0_0_30px_rgba(160,124,254,0.6)] transform hover:scale-105 transition-all text-xl flex items-center gap-3"
-            >
-              <Swords className="w-6 h-6" />
-              START GAME
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
