@@ -432,6 +432,12 @@ export interface IEnrollment {
   ethicsConsentVersion?: string; // lets us force re-consent if the text changes
   ethicsAdditionalImageConsent?: boolean; // optional "use for future research" checkbox
   isEjected?: boolean;
+  arenaProgress?: {
+    completedMilestones: number[];
+    totalTurnsPlayed?: number;
+    lastPlayedAt?: Date;
+    highestScore?: number;
+  };
   ejectionHistory?: Array<{
     ejectedAt: Date;
     ejectionReason: string;

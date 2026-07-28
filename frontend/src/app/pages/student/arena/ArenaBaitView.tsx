@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AuroraText } from "@/components/magicui/aurora-text";
 import { Shield, Swords, Gamepad2, Info } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
 
 interface ArenaBaitViewProps {
   courseId: string;
@@ -8,14 +9,34 @@ interface ArenaBaitViewProps {
   onStartGame: (baitedHp: number) => void;
   onBack: () => void;
   maxHp: number;
+  activeTier?: {
+    level: number;
+    threshold: number;
+    bait: number;
+  } | null;
 }
 
-export default function ArenaBaitView({ courseId, courseName, onStartGame, onBack, maxHp }: ArenaBaitViewProps) {
-  const [playerBait, setPlayerBait] = useState<number>(4);
+export default function ArenaBaitView({ courseId, courseName, onStartGame, onBack, maxHp, activeTier }: ArenaBaitViewProps) {
+  const fixedBait = activeTier?.bait || 4;
+  const [playerBait, setPlayerBait] = useState<number>(fixedBait);
   const [computerBait, setComputerBait] = useState<number | null>(null);
   const [baitConfirmed, setBaitConfirmed] = useState(false);
   const [isBaiting, setIsBaiting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleStartMatch = async () => {
+    try {
+      if (activeTier) {
+        await apiClient.post('/arena/record-turn', {
+          courseId,
+          activeThreshold: activeTier.threshold,
+          baitHp: playerBait,
+        }).catch(err => console.error("Error recording turn in MongoDB on match start:", err));
+      }
+    } finally {
+      onStartGame(playerBait);
+    }
+  };
 
   const handleConfirmBait = () => {
     if (playerBait < 4) {
@@ -185,7 +206,7 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
                     </h4>
                     
                     <button 
-                      onClick={() => onStartGame(playerBait)}
+                      onClick={handleStartMatch}
                       className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold py-4 px-6 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transform hover:scale-105 transition-all text-xl flex items-center justify-center gap-3"
                     >
                       <Swords className="w-6 h-6" />

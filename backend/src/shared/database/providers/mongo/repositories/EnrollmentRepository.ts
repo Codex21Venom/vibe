@@ -288,6 +288,48 @@ export class EnrollmentRepository {
     }
   }
 
+  async addCompletedMilestone(
+    enrollmentId: string,
+    milestoneThreshold: number,
+    session?: ClientSession,
+  ): Promise<void> {
+    try {
+      await this.init();
+      await this.enrollmentCollection.updateOne(
+        { _id: new ObjectId(enrollmentId), 'arenaProgress.completedMilestones': { $ne: milestoneThreshold } },
+        { $addToSet: { 'arenaProgress.completedMilestones': milestoneThreshold } },
+        { session },
+      );
+    } catch (error) {
+      throw new InternalServerError(
+        `Failed to add completed arena milestone to enrollment. ${error}`,
+      );
+    }
+  }
+
+  async recordTurn(
+    enrollmentId: string,
+    milestoneThreshold: number,
+    session?: ClientSession,
+  ): Promise<any> {
+    try {
+      await this.init();
+      return await this.enrollmentCollection.findOneAndUpdate(
+        { _id: new ObjectId(enrollmentId), 'arenaProgress.completedMilestones': { $ne: milestoneThreshold } },
+        {
+          $addToSet: { 'arenaProgress.completedMilestones': milestoneThreshold },
+          $inc: { 'arenaProgress.totalTurnsPlayed': 1 },
+          $set: { 'arenaProgress.lastPlayedAt': new Date() }
+        },
+        { returnDocument: 'after', session }
+      );
+    } catch (error) {
+      throw new InternalServerError(
+        `Failed to record arena turn in enrollment: ${error}`
+      );
+    }
+  }
+
   async updateCompletedItemsCount(
     enrollmentId: string,
     completedItemsCount: number,

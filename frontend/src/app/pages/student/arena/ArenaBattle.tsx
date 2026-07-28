@@ -40,7 +40,7 @@ const POWERUP_DESCRIPTIONS: Record<string, string> = {
   'Blocker': 'Prevents the AI from scoring this round.'
 };
 
-export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleProps) {
+export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, onExit }: ArenaBattleProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [battleId, setBattleId] = useState<string | null>(null);
   

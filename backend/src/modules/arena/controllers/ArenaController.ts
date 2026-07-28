@@ -61,5 +61,48 @@ export class ArenaController {
     return this.battleService.submitAnswer(battleId, body.cards, body.powerUp);
   }
 
+  @Get('/status/:courseId')
+  @Authorized()
+  public async getStatus(@CurrentUser() user: any, @Param('courseId') courseId: string) {
+    if (!user || !user._id) throw new Error('Unauthorized');
+    return this.arenaService.getArenaStatus(user._id.toString(), courseId);
+  }
 
+  @Get('/progress/:courseId')
+  @Authorized()
+  public async getProgress(@CurrentUser() user: any, @Param('courseId') courseId: string) {
+    if (!user || !user._id) throw new Error('Unauthorized');
+    return this.arenaService.getCourseProgress(user._id.toString(), courseId);
+  }
+
+  @Post('/complete-milestone')
+  @Authorized()
+  public async completeMilestone(
+    @CurrentUser() user: any,
+    @Body() body: { courseId: string; milestoneThreshold: number }
+  ) {
+    if (!user || !user._id) throw new Error('Unauthorized');
+    return this.arenaService.completeMilestone(user._id.toString(), body.courseId, body.milestoneThreshold);
+  }
+
+  @Post('/consume-credit')
+  @Authorized()
+  public async consumeCredit(
+    @CurrentUser() user: any,
+    @Body() body: { courseId: string; milestoneThreshold?: number; baitHp?: number }
+  ) {
+    if (!user || !user._id) throw new Error('Unauthorized');
+    return this.arenaService.consumeCredit(user._id.toString(), body.courseId, body.milestoneThreshold, body.baitHp);
+  }
+
+  @Post('/record-turn')
+  @Authorized()
+  public async recordTurn(
+    @CurrentUser() user: any,
+    @Body() body: { courseId: string; activeThreshold?: number; milestoneThreshold?: number; baitHp?: number }
+  ) {
+    if (!user || !user._id) throw new Error('Unauthorized');
+    const threshold = body.activeThreshold || body.milestoneThreshold;
+    return this.arenaService.recordTurn(user._id.toString(), body.courseId, threshold, body.baitHp);
+  }
 }
