@@ -3,6 +3,8 @@ import { MongoClient } from "mongodb";
 import bcrypt from "bcrypt";
 import path from "path";
 import fs from "fs";
+import dns from "dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 async function main() {
   const dbDir = path.resolve(process.cwd(), ".data/mongo_db");

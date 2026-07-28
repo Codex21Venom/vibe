@@ -185,7 +185,20 @@ async def rerun_task(
 
 @router.get("/temp_files/{file_id}")
 async def get_temp_file(file_id: str):
-    """Serve temporary files directly from MongoDB GridFS"""
+    """Serve temporary files directly from MongoDB GridFS or local storage fallback"""
+    if file_id.startswith("local_"):
+        clean_name = file_id[6:]
+        base_dir = Path(__file__).parent.parent
+        candidates = [
+            base_dir / "temp_storage" / clean_name,
+            base_dir / "temp_audio" / clean_name,
+            Path(__file__).parent / "temp_storage" / clean_name,
+        ]
+        for local_file_path in candidates:
+            if local_file_path.exists():
+                return FileResponse(path=str(local_file_path))
+        raise HTTPException(status_code=404, detail="File not found")
+
     storage = MongoStorageService()
     try:
         obj_id = ObjectId(file_id)

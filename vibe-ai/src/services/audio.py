@@ -69,6 +69,15 @@ class AudioService:
             }
 
             if not ffmpeg_path:
+                try:
+                    import imageio_ffmpeg
+                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                    if os.path.exists(ffmpeg_exe):
+                        base_ydl_opts['ffmpeg_location'] = os.path.dirname(ffmpeg_exe)
+                except Exception:
+                    pass
+
+            if 'ffmpeg_location' not in base_ydl_opts and not ffmpeg_path:
                 # Fallback to the winget installation path
                 fallback_path = os.path.join(
                     os.environ.get("LOCALAPPDATA", ""), 
@@ -91,16 +100,31 @@ class AudioService:
                 try:
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(video_url, download=True)
-                        # The postprocessor will create a .wav file
                         filename = ydl.prepare_filename(info)
-                        # Remove the original extension and add .wav
                         audio_filename = os.path.splitext(filename)[0] + '.wav'
-                        return audio_filename
+                        if os.path.exists(audio_filename):
+                            return audio_filename
+                        if os.path.exists(filename):
+                            return filename
                 except Exception as e:
                     last_error = e
                     print(f"yt-dlp: Failed with {browser or 'no cookies'}. Error: {str(e)}")
+                    
+                    # If file was downloaded despite postprocessing warning/error, return it
+                    downloaded_files = list(temp_dir.glob(f"{unique_id}_*"))
+                    if downloaded_files:
+                        wav_files = [f for f in downloaded_files if f.suffix.lower() == '.wav']
+                        if wav_files:
+                            return str(wav_files[0])
+                        print(f"Found downloaded audio file despite postprocessor note: {downloaded_files[0]}")
+                        return str(downloaded_files[0])
                     continue
             
+            # If we get here and a downloaded file exists, return it
+            downloaded_files = list(temp_dir.glob(f"{unique_id}_*"))
+            if downloaded_files:
+                return str(downloaded_files[0])
+
             # If we get here, all download attempts failed
             err_str = str(last_error)
             if "cookie database" in err_str or "locked" in err_str:

@@ -57,19 +57,18 @@ const mapFirebaseUserToAppUser = async (firebaseUser: FirebaseUser | null) => {
 };
 
 export const refreshFirebaseToken = async (): Promise<void> => {
-  if (localStorage.getItem('auth-provider') === 'local') {
+  if (!auth || !auth.app || localStorage.getItem('auth-provider') === 'local') {
     return;
   }
-  const firebaseUser = auth.currentUser;
+  const firebaseUser = auth?.currentUser;
   if (!firebaseUser) {
-    throw new Error('No authenticated user found');
+    return;
   }
   try {
     const token = await firebaseUser.getIdToken(true);
     useAuthStore.getState().setToken(token);
   } catch (error) {
-    console.error('Error refreshing Firebase token:', error);
-    throw error;
+    console.warn('Error refreshing Firebase token (bypassed in local mode):', error);
   }
 };
 
