@@ -27,7 +27,7 @@ interface QuestionCard {
   promptText: string;
 }
 
-type RoundState = 'intro' | 'loading' | 'playing' | 'resolving' | 'game_over';
+type RoundState = 'intro' | 'loading' | 'playing' | 'resolving' | 'extend_prompt' | 'game_over';
 
 // Mock data generator removed
 
@@ -38,10 +38,9 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   // Game State
   const [currentRound, setCurrentRound] = useState(1);
   const [roundState, setRoundState] = useState<RoundState>('intro');
-  const [timer, setTimer] = useState(15);
+  const [timer, setTimer] = useState(30);
   
-  const [playerHP, setPlayerHP] = useState(baitedHp);
-  const [computerHP, setComputerHP] = useState(baitedHp);
+  const [isExtended, setIsExtended] = useState(false);
   
   const [playerScore, setPlayerScore] = useState(0);
   const [computerScore, setComputerScore] = useState(0);
@@ -62,6 +61,13 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const battleContainerRef = useRef<HTMLDivElement>(null);
 
+  // Sync HP helper
+  const syncGlobalHp = (delta: number) => {
+    const current = Number(localStorage.getItem('arena_hp_delta') || 0);
+    localStorage.setItem('arena_hp_delta', (current + delta).toString());
+    window.dispatchEvent(new Event('storage')); // trigger update across app
+  };
+
   // --- Handlers ---
   const startMatch = async () => {
     try {
@@ -69,6 +75,10 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
         await battleContainerRef.current.requestFullscreen();
       }
       setIsFullscreen(true);
+      
+      // Deduct bet from global HP at start
+      syncGlobalHp(-baitedHp);
+      
       setRoundState('loading');
       
       const response = await apiClient.post(`/arena/${courseId}/battle/start`);
@@ -89,7 +99,11 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   };
 
   const startNewRound = async (roundNum: number, bId?: string) => {
-    if (roundNum > 10 || playerHP <= 0 || computerHP <= 0) {
+    if (!isExtended && roundNum > 5) {
+      setRoundState('extend_prompt');
+      return;
+    }
+    if (roundNum > 10) {
       setRoundState('game_over');
       return;
     }
@@ -102,7 +116,7 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     setComputerPlayedCards([]);
     setComputerComboName("");
     setComputerComboMultiplier(1);
-    setTimer(15);
+    setTimer(30);
     setRoundState('loading');
     
     const activeBattleId = bId || battleId;
@@ -199,8 +213,6 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   };
 
   const resolveRound = (pCards: Card[], cCards: Card[], submitRes: any) => {
-    let pDamage = 0;
-    let cDamage = 0;
     let pScoreDelta = 0;
     let cScoreDelta = 0;
     
@@ -209,17 +221,14 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     // Resolve Player via API response
     if (submitRes) {
       pScoreDelta += submitRes.kpEarned || 0;
-      pDamage += submitRes.hpLost || 0;
       
       if (submitRes.multiplier > 0) {
-        cDamage += Math.max(10, Math.floor(baitedHp * 0.1)) * submitRes.multiplier;
         resultMsg += `You struck with ${submitRes.comboName}! `;
       } else {
         resultMsg += "Your combo failed! ";
       }
     } else {
       resultMsg += "Timeout! ";
-      pDamage += 10;
     }
 
     // Resolve Computer (Frontend Calculation)
@@ -245,14 +254,9 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     
     if (cMultiplier > 0) {
         cScoreDelta += Math.round((cCorrectCount / 5) * 50 * cMultiplier); // Approx AI score
-        pDamage += Math.max(10, Math.floor(baitedHp * 0.1)) * cMultiplier;
-    } else {
-        cDamage += 10; // AI takes penalty for broken combo
     }
     
     // Apply stats
-    setPlayerHP(prev => Math.max(0, prev - pDamage));
-    setComputerHP(prev => Math.max(0, prev - cDamage));
     setPlayerScore(prev => prev + pScoreDelta);
     setComputerScore(prev => prev + cScoreDelta);
     setRoundResultText(resultMsg);
@@ -270,6 +274,21 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
     onExit();
   };
 
+  // Check Game Over logic to award HP if player wins
+  useEffect(() => {
+    if (roundState === 'game_over') {
+      const isWin = playerScore > computerScore;
+      if (isWin) {
+        // Player wins: get their bet back PLUS computer's bet (2x baitedHp)
+        syncGlobalHp(baitedHp * 2);
+      }
+      
+      // Record total points earned in PvC
+      const currentPoints = Number(localStorage.getItem('arena_pvc_points') || 0);
+      localStorage.setItem('arena_pvc_points', (currentPoints + playerScore).toString());
+    }
+  }, [roundState]);
+
   // --- Renders ---
   
   if (roundState === 'intro') {
@@ -281,13 +300,13 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
             <h3 className="text-4xl font-bold text-white mb-4">Ready for Combat</h3>
             
             <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-700 mb-8">
-              <p className="text-lg text-slate-300 mb-2">Total Match HP Pool:</p>
+              <p className="text-lg text-slate-300 mb-2">Total Bet Pool:</p>
               <div className="text-5xl font-black text-amber-400">{baitedHp * 2} HP</div>
-              <p className="text-sm text-slate-500 mt-2">(You: {baitedHp} | AI: {baitedHp})</p>
+              <p className="text-sm text-slate-500 mt-2">(You bet: {baitedHp} | AI bet: {baitedHp})</p>
             </div>
             
             <p className="text-slate-400 text-lg mb-8">
-              Survive 10 rounds of strict knowledge evaluation. Correct answers deal damage, wrong answers drain your HP.
+              Survive 5 rounds of strict knowledge evaluation to win the pool. Outscore your opponent to claim victory!
             </p>
 
             <div className="flex justify-center gap-4">
@@ -305,7 +324,7 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
   }
 
   if (roundState === 'game_over') {
-    const isWin = playerHP > 0 && computerHP <= 0 || playerScore > computerScore;
+    const isWin = playerScore > computerScore;
     
     return (
       <div ref={battleContainerRef} className="game-fullscreen-container justify-center items-center p-8">
@@ -318,12 +337,10 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
             <div className="bg-slate-800 p-6 rounded-xl">
               <h4 className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Your Final Score</h4>
               <div className="text-4xl font-bold text-white">{playerScore}</div>
-              <div className="text-green-400 mt-2">{playerHP} HP Remaining</div>
             </div>
             <div className="bg-slate-800 p-6 rounded-xl">
               <h4 className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">AI Final Score</h4>
               <div className="text-4xl font-bold text-white">{computerScore}</div>
-              <div className="text-red-400 mt-2">{computerHP} HP Remaining</div>
             </div>
           </div>
           
@@ -348,16 +365,6 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
             <span className="text-red-400 font-bold tracking-widest uppercase mb-1">AI Dealer</span>
             <span className="text-white font-mono text-xl">{computerScore} PTS</span>
           </div>
-          
-          <div className="flex flex-col items-end w-1/3">
-            <div className="flex justify-between w-full mb-1">
-              <span className="text-slate-400 text-sm">HP</span>
-              <span className="text-red-400 font-bold">{computerHP} / {baitedHp}</span>
-            </div>
-            <div className="game-hp-bar">
-              <div className="game-hp-fill" style={{ width: `${(computerHP / baitedHp) * 100}%` }}></div>
-            </div>
-          </div>
         </div>
         
         {/* Computer concealed hand */}
@@ -371,7 +378,7 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
       {/* Middle Area: Play Table & Question */}
       <div className="game-middle-area z-10">
         <div className="absolute top-4 font-bold text-slate-500 tracking-widest">
-          ROUND {currentRound} / 10
+          ROUND {currentRound} / {isExtended ? 10 : 5}
         </div>
         
         {roundState === 'loading' && (
@@ -457,19 +464,40 @@ export default function ArenaBattle({ courseId, baitedHp, onExit }: ArenaBattleP
             <span className="text-white font-bold">{roundResultText}</span>
           </div>
         )}
+        {roundState === 'extend_prompt' && (
+          <div className="animate-pop-in flex flex-col items-center justify-center mt-12 bg-slate-900/90 p-8 rounded-2xl border border-purple-500 max-w-xl text-center shadow-2xl">
+            <h3 className="text-3xl font-bold text-white mb-4">5 Rounds Complete!</h3>
+            <p className="text-lg text-slate-300 mb-8">
+              You have survived the initial phase. Do you want to cash out with your current score, or extend the match to 10 rounds for a chance at greater glory?
+            </p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => {
+                  setIsExtended(true);
+                  startNewRound(6);
+                }}
+                className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-8 rounded-full transition-transform hover:scale-105"
+              >
+                Extend to 10 Rounds
+              </button>
+              <button 
+                onClick={() => setRoundState('game_over')}
+                className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full transition-colors"
+              >
+                End Match Now
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Bottom Area: Player Hand */}
       <div className="game-bottom-area z-20">
         <div className="flex justify-between items-end w-full max-w-5xl px-8 mb-6">
-          <div className="flex flex-col w-1/3">
-            <div className="flex justify-between w-full mb-1">
-              <span className="text-slate-400 text-sm">HP</span>
-              <span className="text-green-400 font-bold">{playerHP} / {baitedHp}</span>
-            </div>
-            <div className="game-hp-bar">
-              <div className="game-hp-fill player" style={{ width: `${(playerHP / baitedHp) * 100}%` }}></div>
-            </div>
+          <div className="flex flex-col items-start w-1/3">
+            <span className="text-purple-400 font-bold tracking-widest uppercase mb-1">Bet Pool</span>
+            <span className="text-white font-mono text-xl">{baitedHp * 2} HP</span>
           </div>
 
           <div className="flex flex-col items-end">

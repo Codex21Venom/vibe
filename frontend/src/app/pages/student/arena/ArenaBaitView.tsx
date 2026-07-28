@@ -21,9 +21,9 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
     
     setIsBaiting(true);
     
-    // Simulate computer bait logic
+    // Simulate computer bet logic
     setTimeout(() => {
-      // Computer baits the exact same amount as the player
+      // Computer bets the exact same amount as the player
       const generatedBait = playerBait;
       
       setComputerBait(generatedBait);
@@ -35,7 +35,7 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
   return (
     <div className="arena-bait-container">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Bait Phase: {courseName}</h2>
+        <h2 className="text-2xl font-bold text-white">Bet Phase: {courseName}</h2>
         <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
           Back to Course Selection
         </button>
@@ -44,10 +44,10 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
       <div className="bait-deck-area bg-[#1a1a24] p-8 rounded-2xl border border-purple-500/30 shadow-[0_0_30px_rgba(160,124,254,0.1)]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           
-          {/* Player Bait Section */}
+          {/* Player Bet Section */}
           <div className="player-bait-panel flex flex-col items-center justify-center p-6 bg-slate-800/50 rounded-xl border-2 border-blue-500/50 relative overflow-hidden">
             <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-xl"></div>
-            <h3 className="text-xl font-bold text-blue-400 mb-6 z-10">Your Bait</h3>
+            <h3 className="text-xl font-bold text-blue-400 mb-6 z-10">Your Bet</h3>
             
             {!baitConfirmed ? (
               <div className="z-10 flex flex-col items-center w-full max-w-xs">
@@ -67,7 +67,7 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
                   disabled={isBaiting || playerBait <= 0 || playerBait > maxHp}
                   className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isBaiting ? "Locking in..." : "Confirm Bait"}
+                  {isBaiting ? "Locking in..." : "Confirm Bet"}
                 </button>
               </div>
             ) : (
@@ -78,10 +78,10 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
             )}
           </div>
 
-          {/* Computer Bait Section */}
+          {/* Computer Bet Section */}
           <div className="computer-bait-panel flex flex-col items-center justify-center p-6 bg-slate-800/50 rounded-xl border-2 border-red-500/50 relative overflow-hidden">
             <div className="absolute inset-0 bg-red-500/10 blur-xl rounded-xl"></div>
-            <h3 className="text-xl font-bold text-red-400 mb-6 z-10">Computer's Bait</h3>
+            <h3 className="text-xl font-bold text-red-400 mb-6 z-10">Computer's Bet</h3>
             
             <div className="z-10 flex flex-col items-center justify-center h-full min-h-[150px]">
               {isBaiting ? (
@@ -105,11 +105,11 @@ export default function ArenaBaitView({ courseId, courseName, onStartGame, onBac
 
         </div>
 
-        {/* Start Game Button (only shows when both baits are confirmed) */}
+        {/* Start Game Button (only shows when both bets are confirmed) */}
         {baitConfirmed && (
           <div className="mt-12 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="text-center mb-6">
-              <p className="text-lg text-slate-300 mb-2">Total Net HP Bait Pool:</p>
+              <p className="text-lg text-slate-300 mb-2">Total Net HP Bet Pool:</p>
               <h4 className="text-4xl font-bold text-purple-400"><AuroraText>{playerBait + (computerBait || 0)} HP</AuroraText></h4>
             </div>
             
