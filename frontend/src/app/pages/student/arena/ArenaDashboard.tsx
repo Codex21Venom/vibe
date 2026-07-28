@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { AuroraText } from "@/components/magicui/aurora-text";
 import { apiClient } from "@/lib/api-client";
 import { MonitorPlay, Users } from "lucide-react";
-import { useHpStudentCohorts } from "@/hooks/hooks";
 import "./arena.css";
 import ArenaBattle from "./ArenaBattle";
 import ArenaBaitView from "./ArenaBaitView";
@@ -20,16 +19,13 @@ export default function ArenaDashboard() {
   const [baitedHp, setBaitedHp] = useState<number>(0);
   const [showPvpOpponents, setShowPvpOpponents] = useState(false);
 
-  // Fallback to fetch real enrolled courses since cohorts endpoint might be empty
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const response = await apiClient.get<any[]>('/arena/courses');
-        // Filter out unknown or obsolete courses
         const validCourses = response.data.filter(c => c.courseName && c.courseName !== "Unknown Course" && c.courseName.trim() !== "");
         setCourses(validCourses);
         
-        // Sync the real HP derived from active courses to localStorage so cohorts.tsx can read it
         const baseHp = validCourses.length * 100;
         localStorage.setItem('arena_base_hp', baseHp.toString());
         window.dispatchEvent(new Event('storage'));
@@ -185,49 +181,68 @@ export default function ArenaDashboard() {
                         <div className="course-card-glow"></div>
                         <div className="course-card-content">
                           <h4 className="text-xl font-bold text-white mb-2">{course.courseName}</h4>
-                          <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-md uppercase tracking-wider">
-                            Status: ACTIVE
-                          </span>
+                          <div className="flex items-center justify-between mt-2 gap-2">
+                            <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-md uppercase tracking-wider">
+                              Status: ACTIVE
+                            </span>
+                            <span className={`inline-block px-2 py-1 ${(course.progressPercent ?? 0) >= 30 ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-400'} text-xs font-bold rounded-md`}>
+                              Progress: {course.progressPercent ?? 0}%
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
                 
-                {selectedCourse && (
-                  <div className="arena-actions mt-8 flex-col items-center">
-                    {globalTotalHp < 50 ? (
-                      <div className="text-red-400 mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20 text-center">
-                        You need at least 50 HP to enter the Arena. Complete more activities to earn HP!
-                      </div>
-                    ) : null}
-                    <div className="flex justify-center w-full mt-4">
-                      <button 
-                        onClick={handleEnterBattle} 
-                        className="arena-btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-xl py-4 px-12"
-                        disabled={globalTotalHp < 50 && mode === 'pvc'}
-                      >
-                        <span>{mode === 'pvc' ? 'Enter Battle' : 'Find Opponent'}</span>
-                      </button>
-                    </div>
+                {selectedCourse && (() => {
+                  const selectedCourseData = courses.find(c => (c.courseId || c.cohortId) === selectedCourse);
+                  const currentProgress = selectedCourseData?.progressPercent ?? 0;
+                  const isProgressInsufficient = currentProgress < 30;
+                  const isHpInsufficient = globalTotalHp < 50;
 
-                    {/* PvP Opponents List Mockup */}
-                    {mode === 'pvp' && showPvpOpponents && (
-                      <div className="mt-12 w-full max-w-3xl bg-slate-900/80 rounded-2xl border border-pink-500/30 p-8 shadow-[0_0_40px_rgba(254,143,181,0.15)] animate-in fade-in slide-in-from-top-4 duration-500">
-                        <h3 className="text-2xl font-bold text-white mb-6 flex items-center justify-center gap-3">
-                          <Users className="text-pink-400 w-8 h-8" />
-                          Live Opponents Found
-                        </h3>
-                        <div className="space-y-4">
-                          <div className="flex flex-col items-center justify-center p-12 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                            <div className="w-10 h-10 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin mb-4"></div>
-                            <p className="text-slate-400 font-medium">Scanning for live opponents in this course...</p>
+                  return (
+                    <>
+                      <div className="arena-actions mt-8 flex flex-col items-center">
+                        {isProgressInsufficient && (
+                          <div className="text-amber-400 mb-3 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 text-center font-medium">
+                            ⚠️ You must complete at least 30% of this course to play in the Arena. (Current Progress: {currentProgress}%)
                           </div>
+                        )}
+                        {isHpInsufficient && (
+                          <div className="text-red-400 mb-3 bg-red-500/10 p-3 rounded-lg border border-red-500/20 text-center font-medium">
+                            ⚡ You need at least 50 HP to enter the Arena. Complete more activities to earn HP!
+                          </div>
+                        )}
+                        <div className="flex justify-center w-full mt-4">
+                          <button 
+                            onClick={handleEnterBattle} 
+                            className="arena-btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-xl py-4 px-12"
+                            disabled={isProgressInsufficient || (isHpInsufficient && mode === 'pvc')}
+                          >
+                            <span>{mode === 'pvc' ? 'Enter Battle' : 'Find Opponent'}</span>
+                          </button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
+
+                      {/* PvP Opponents List Mockup */}
+                      {mode === 'pvp' && showPvpOpponents && (
+                        <div className="mt-12 w-full max-w-3xl bg-slate-900/80 rounded-2xl border border-pink-500/30 p-8 shadow-[0_0_40px_rgba(254,143,181,0.15)] animate-in fade-in slide-in-from-top-4 duration-500">
+                          <h3 className="text-2xl font-bold text-white mb-6 flex items-center justify-center gap-3">
+                            <Users className="text-pink-400 w-8 h-8" />
+                            Live Opponents Found
+                          </h3>
+                          <div className="space-y-4">
+                            <div className="flex flex-col items-center justify-center p-12 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                              <div className="w-10 h-10 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin mb-4"></div>
+                              <p className="text-slate-400 font-medium">Scanning for live opponents in this course...</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

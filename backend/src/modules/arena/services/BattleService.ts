@@ -121,23 +121,29 @@ export class BattleService {
         console.error("Failed to fetch transcript context for arena question:", err);
       }
 
-      // If segmentContext is too short (likely just mocked metadata), fall back heavily on course description
-      const finalContextText = segmentContext.length > 150 
-          ? `COURSE CONTEXT (TRANSCRIPT/LESSON INFO):\n${segmentContext}` 
-          : `COURSE DESCRIPTION:\n"${course.description}"\n\n(Use this general course description to infer the subject matter)`;
+      let finalContextText = '';
+      if (completedTopics.length > 0) {
+        finalContextText = `STRICT PROGRESS SCOPING RULE: The student has ONLY completed the following topics so far: [${completedTopics.join(', ')}].
+YOU ARE STRICTLY LIMITED TO THESE COMPLETED TOPICS. DO NOT GENERATE ANY QUESTIONS, ANSWERS, OR CARDS FROM UNLEARNED TOPICS OUTSIDE THIS LIST.
+
+COMPLETED LESSON TRANSCRIPTS & TOPIC CONTEXT:
+${segmentContext}`;
+      } else {
+        finalContextText = `COURSE DESCRIPTION:\n"${course.description}"\n\n(Infer initial introductory concepts taught in the course)`;
+      }
 
       const prompt = `You are the AI opponent in a competitive, fast-paced strategy card game called Knowledge Clash.
 The player is studying the educational course: "${course.name}".
 
-CRITICAL RULE 1: You MUST NOT use any external knowledge. Every single fact, concept, or answer you generate must be explicitly tied to the provided course context.
+CRITICAL RULE 1: STRICT PROGRESS SCOPING! You MUST ONLY ask questions and generate concept cards from the student's COMPLETED TOPICS: [${completedTopics.length > 0 ? completedTopics.join(', ') : 'Initial Course Concepts'}]. Do NOT use unlearned, advanced, or future topics outside of what the student has completed.
 CRITICAL RULE 2: Keep it PUNCHY and CONCISE! This is a fast-paced game with a 15-second timer. The scenario/question should be short (1-2 sentences max). Card names must be 1-4 words max. Explanations must be ultra-short (1 short sentence max).
-CRITICAL RULE 3: IGNORE COURSE STRUCTURE METADATA. Do NOT generate questions about "video segments", "quizzes", "modules", or "transcripts". You must generate questions about the actual EDUCATIONAL SUBJECT MATTER being taught in the course!
+CRITICAL RULE 3: IGNORE COURSE STRUCTURE METADATA. Do NOT generate questions about "video segments", "quizzes", "modules", or "transcripts". You must generate questions about the actual EDUCATIONAL SUBJECT MATTER taught in the completed topics!
 
 ${finalContextText}
 
-Based on the course '${course.name}' and specifically the following completed topics: ${completedTopics.length > 0 ? completedTopics.join(', ') : 'General Course Context'}. Create an intermediate difficulty question or scenario.
+Based ONLY on the completed topics (${completedTopics.length > 0 ? completedTopics.join(', ') : 'Initial Course Concepts'}), create a question or scenario.
 
-You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts required to solve the scenario, and others must be highly plausible but incorrect distractor concepts. Each card must include a very brief explanation of why it is correct or incorrect.`;
+You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts required to solve the scenario, and others must be plausible but incorrect distractor concepts from the completed topics. Each card must include a short explanation.`;
 
       try {
         if (!aiConfig.GEMINI_API_KEY) {

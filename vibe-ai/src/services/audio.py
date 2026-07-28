@@ -58,6 +58,14 @@ class AudioService:
                 'format': 'bestaudio/best',
                 'outtmpl': str(temp_dir / f'{unique_id}_%(id)s.%(ext)s'),
                 'socket_timeout': 30,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android', 'ios', 'web', 'mweb'],
+                    }
+                },
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                },
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'wav',
@@ -120,16 +128,16 @@ class AudioService:
                         return str(downloaded_files[0])
                     continue
             
-            # If we get here and a downloaded file exists, return it
+            # If we get here, check if a downloaded audio file exists
             downloaded_files = list(temp_dir.glob(f"{unique_id}_*"))
             if downloaded_files:
+                wav_files = [f for f in downloaded_files if f.suffix.lower() == '.wav']
+                if wav_files:
+                    return str(wav_files[0])
                 return str(downloaded_files[0])
 
             # If we get here, all download attempts failed
-            err_str = str(last_error)
-            if "cookie database" in err_str or "locked" in err_str:
-                raise Exception("Failed to download audio. Your browser (Edge/Brave/Firefox) is currently open and locking its cookies. Please close your browser completely and try again, or use a different video that does not require age verification.")
-            else:
-                raise Exception(f"Failed to download audio. Please try another video. Detailed error: {err_str}")
+            err_str = str(last_error) if last_error else "Unknown download error"
+            raise Exception(f"Failed to download audio. Please check the video URL or ensure the video is publicly accessible. (Error: {err_str})")
         
         return await loop.run_in_executor(None, download)
