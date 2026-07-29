@@ -78,9 +78,9 @@ export class ArenaController {
   @Authorized()
   public async submitAnswer(
     @Param('battleId') battleId: string,
-    @Body() body: { cards: string[], powerUp?: string }
+    @Body() body: { cards: string[], powerUp?: string, powerUpSlotIndex?: number }
   ) {
-    return this.battleService.submitAnswer(battleId, body.cards, body.powerUp);
+    return this.battleService.submitAnswer(battleId, body.cards, body.powerUp, body.powerUpSlotIndex);
   }
 
   @Post('/battle/:battleId/extend')

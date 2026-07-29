@@ -256,9 +256,6 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
     setSelectedPowerUpSlot(null);
     
     let finalCards = cards;
-    if (currentPowerUp === 'The Joker') {
-        finalCards = playerHand.filter(c => c.isCorrect);
-    }
     
     setRoundState('resolving');
     setPlayedCards(finalCards);
@@ -274,7 +271,8 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       try {
          const response = await apiClient.post(`/arena/battle/${battleId}/submit`, { 
              cards: finalCards.map(c => c.name || 'Timeout'),
-             powerUp: currentPowerUp
+             powerUp: currentPowerUp,
+             powerUpSlotIndex: usedPowerUpSlot
          });
          submitRes = response.data;
          setComboName(submitRes.comboName || "Combo Broken!");
@@ -298,31 +296,19 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       setInventory(submitRes.battle.inventory);
     }
     
-    const correctCards = playerHand.filter(c => c.isCorrect);
-    const distractors = playerHand.filter(c => !c.isCorrect);
-    
-    let compCards: Card[] = [];
-    const rand = Math.random();
-    
-    if (rand < 0.1) {
-        compCards = distractors.slice(0, Math.max(1, Math.floor(Math.random() * distractors.length)));
-    } else if (rand < 0.4) {
-        compCards = correctCards.slice(0, 1);
-    } else if (rand < 0.7) {
-        if (distractors.length > 0) {
-            compCards = [...correctCards, distractors[0]];
-        } else {
-            compCards = correctCards;
-        }
-    } else {
-        compCards = correctCards;
-    }
-    
-    if (compCards.length === 0) compCards = [playerHand[0]];
-    
     setTimeout(() => {
+      let compCards: Card[] = [];
+      if (submitRes && submitRes.computerResult && submitRes.computerResult.cards) {
+          compCards = submitRes.computerResult.cards.map((c: any, i: number) => ({
+              id: `comp_${i}`,
+              name: c.name,
+              type: 'CONCEPT_ANSWER',
+              description: c.explanation || '',
+              isCorrect: c.isCorrect
+          }));
+      }
       setComputerPlayedCards(compCards);
-      resolveRound(cards, compCards, submitRes, playerScore, currentPowerUp);
+      resolveRound(finalCards, compCards, submitRes, playerScore, currentPowerUp);
     }, 1000); 
   };
 
@@ -333,7 +319,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
     let resultMsg = "";
 
     // Base scoring logic locally if API didn't return it
-    if (submitRes && submitRes.pointsEarned !== undefined) {
+    if (submitRes) {
       pScoreDelta = submitRes.pointsEarned;
       if (submitRes.actionSummary === 'Win') {
         resultMsg += `You struck with ${submitRes.comboName}! `;
@@ -342,108 +328,43 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       } else {
         resultMsg += "Your combo failed! ";
       }
-    } else {
-      // Local fallback calculation based on Base Scoring rules
-      let pCorrectCount = pCards.filter(c => c.isCorrect).length;
-      let pHasMistake = pCards.some(c => !c.isCorrect);
       
-      if (currentPowerUp === 'The Joker') {
-          pCorrectCount = playerHand.filter(c => c.isCorrect).length;
-          pHasMistake = false;
-      } else if (currentPowerUp === 'Wildcard') {
-          pCorrectCount += 1;
-      }
+      setComboMultiplier(submitRes.multiplier);
+      setHighestComboMultiplier(prev => Math.max(prev, submitRes.multiplier));
 
-      if (!pHasMistake && pCorrectCount > 0) {
-        let mult = 1;
-        if (pCorrectCount === 2) mult = 1.5;
-        else if (pCorrectCount === 3) mult = 2.5;
-        else if (pCorrectCount >= 4) mult = 3.0; // flush/full house
-        pScoreDelta = Math.round(50 * mult);
-        setComboMultiplier(mult);
-        setHighestComboMultiplier(prev => Math.max(prev, mult));
-        resultMsg += "Good Combo! ";
-      } else {
-        pScoreDelta = -30;
-        setComboMultiplier(0);
-        resultMsg += "Miss! ";
+      if (submitRes.computerResult) {
+          cScoreDelta = submitRes.computerResult.scoreDelta;
+          setComputerComboName(submitRes.computerResult.comboName);
+          setComputerComboMultiplier(submitRes.computerResult.multiplier);
       }
+      
+      if (submitRes.milestoneChecks?.powerUpGranted) {
+        resultMsg += " | Power-Up Acquired!";
+      }
+      if (submitRes.milestoneChecks?.hpTriggered) {
+        syncGlobalHp(20);
+        setMilestoneHpEarned(prev => prev + 20);
+        triggerHpFadingText();
+        resultMsg += " | +20 HP Regenerated!";
+      }
+    } else {
+      // Basic fallback if API fails
+      pScoreDelta = -30;
+      setComboMultiplier(0);
+      resultMsg += "Miss! ";
+      cScoreDelta = 0;
+      setComputerComboName("Error");
+      setComputerComboMultiplier(0);
     }
 
     if (pScoreDelta > 0) setTotalPointsEarned(prev => prev + pScoreDelta);
     if (pScoreDelta < 0) setTotalPointsLost(prev => prev + Math.abs(pScoreDelta));
 
-    // Resolve Computer
-    const cCorrectCount = cCards.filter(c => c.isCorrect).length;
-    const cHasMistake = cCards.some(c => !c.isCorrect);
-    
-    let cMultiplier = 1;
-    let cComboName = "Single Strike";
-    
-    if (!cHasMistake && cCorrectCount > 0) {
-        if (cCorrectCount === 2) { cMultiplier = 1.5; cComboName = "Pair Combo!"; }
-        else if (cCorrectCount === 3) { cMultiplier = 2.5; cComboName = "Three of a Kind!"; }
-        else if (cCorrectCount >= 4) { cMultiplier = 3.0; cComboName = "Four of a Kind!"; }
-    } else {
-        cMultiplier = 0;
-        cComboName = "Combo Broken!";
-    }
-    
-    if (currentPowerUp === 'Blocker') {
-        cMultiplier = 0;
-        cComboName = "Blocked!";
-    }
-    
-    setComputerComboName(cComboName);
-    setComputerComboMultiplier(cMultiplier);
-    
-    if (cMultiplier > 0) {
-        cScoreDelta = Math.round(50 * cMultiplier); 
-    } else {
-        cScoreDelta = -30;
-    }
-
-    if (currentPowerUp === 'Reversal') {
-        cScoreDelta = -cScoreDelta;
-        if (cScoreDelta > 0) {
-            cComboName = "Reversed to Win!";
-        } else {
-            cComboName = "Reversed to Loss!";
-        }
-        setComputerComboName(cComboName);
-    }
-    
-    const newPlayerScore = oldScore + pScoreDelta;
-    
-    // Check Milestones using absolute total points earned (as specified: every 100 points / 500 points)
-    // Wait, is it based on playerScore or totalPointsEarned? The rules say "Every 100 points milestone reached." 
-    // Usually this implies the net score or total gross points. Let's use `playerScore` to encourage winning.
-    const old100s = Math.floor(Math.max(0, oldScore) / 100);
-    const new100s = Math.floor(Math.max(0, newPlayerScore) / 100);
-    if (new100s > old100s) {
-      // Give a power up
-      setInventory(prev => {
-        if (prev.length < 3) {
-          const randomPowerUp = POWERUP_DICTIONARY[Math.floor(Math.random() * POWERUP_DICTIONARY.length)];
-          return [...prev, randomPowerUp];
-        }
-        return prev;
-      });
-      resultMsg += " | Power-Up Acquired!";
-    }
-
-    const new200s = Math.floor(Math.max(0, newPlayerScore) / 200);
-    if (new200s > highestHpMilestone) {
-      // Give 20 HP
-      syncGlobalHp(20);
-      setMilestoneHpEarned(prev => prev + 20);
-      triggerHpFadingText();
-      setHighestHpMilestone(new200s);
-      resultMsg += " | +20 HP Regenerated!";
-    }
+    const newPlayerScore = submitRes ? submitRes.battle.totalPoints : oldScore + pScoreDelta;
+    const newComputerScore = submitRes ? submitRes.battle.computerScore : (oldScore + cScoreDelta); // fallback doesn't track comp well
 
     setPlayerScore(Math.max(0, newPlayerScore));
-    setComputerScore(prev => Math.max(0, prev + cScoreDelta));
+    setComputerScore(Math.max(0, newComputerScore));
     setRoundResultText(resultMsg);
 
     setTimeout(() => {

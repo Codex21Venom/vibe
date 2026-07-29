@@ -14,6 +14,7 @@ import { EnrollmentRepository } from '#shared/database/providers/mongo/repositor
 import { SegmentContextProvider } from '#root/modules/studentQuestions/services/context/SegmentContextProvider.js';
 import { ItemRepository } from '#shared/database/providers/mongo/repositories/ItemRepository.js';
 import { COURSES_TYPES } from '#root/modules/courses/types.js';
+import { PowerUpEngine, PowerUpContext } from './PowerUpEngine.js';
 
 @injectable()
 export class BattleService {
@@ -365,13 +366,19 @@ For each question, you MUST generate EXACTLY 5 cards in the deck. Some must be c
     return question;
   }
 
-  public async submitAnswer(battleId: string, submittedCards: string[], powerUp?: string): Promise<any> {
+  public async submitAnswer(battleId: string, submittedCards: string[], powerUp?: string, powerUpSlotIndex?: number): Promise<any> {
     const battle = await this.arenaRepo.getBattleById(battleId);
     if (!battle || !battle.isActive) {
       throw new Error('Battle not found or inactive');
     }
 
-    if (powerUp && battle.inventory.includes(powerUp)) {
+    if (powerUpSlotIndex !== undefined && powerUpSlotIndex !== null) {
+        const pUp = battle.inventory[powerUpSlotIndex];
+        if (pUp) {
+            battle.inventory.splice(powerUpSlotIndex, 1);
+            battle.activePowerUps.push(pUp);
+        }
+    } else if (powerUp && battle.inventory.includes(powerUp)) {
         const pIdx = battle.inventory.indexOf(powerUp);
         if (pIdx !== -1) {
             battle.inventory.splice(pIdx, 1);
@@ -397,65 +404,109 @@ For each question, you MUST generate EXACTLY 5 cards in the deck. Some must be c
       }
     }
 
-    if (battle.activePowerUps.includes('The Joker')) {
-        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'The Joker');
-        correctCount = correctConcepts.length;
-        hasMistake = false;
+    // Generate opponent move
+    let cCards: any[] = [];
+    const deck = currentQuestion.deck || [];
+    const correctDeckCards = deck.filter((c: any) => c.isCorrect);
+    const distractors = deck.filter((c: any) => !c.isCorrect);
+    
+    const rand = Math.random();
+    if (rand < 0.1) {
+        cCards = distractors.slice(0, Math.max(1, Math.floor(Math.random() * distractors.length)));
+    } else if (rand < 0.4) {
+        cCards = correctDeckCards.slice(0, 1);
+    } else if (rand < 0.7) {
+        if (distractors.length > 0) {
+            cCards = [...correctDeckCards, distractors[0]];
+        } else {
+            cCards = correctDeckCards;
+        }
+    } else {
+        cCards = correctDeckCards;
+    }
+    if (cCards.length === 0 && deck.length > 0) cCards = [deck[0]];
+
+    let cCorrectCount = 0;
+    let cHasMistake = false;
+    for (const card of cCards) {
+      if (card.isCorrect) {
+          cCorrectCount++;
+      } else {
+          cHasMistake = true;
+      }
     }
 
-    if (battle.activePowerUps.includes('Wildcard')) {
-        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Wildcard');
-        correctCount += 1;
+    const context: PowerUpContext = {
+        battle: battle,
+        currentQuestion: currentQuestion,
+        player: {
+            submittedCards: submittedCards,
+            correctConcepts: correctConcepts,
+            correctCount: correctCount,
+            hasMistake: hasMistake,
+            basePoints: 0,
+            multiplier: 1.0,
+            comboName: "None",
+            shieldUsed: false,
+            consecutiveWins: battle.consecutiveWins
+        },
+        opponent: {
+            playedCards: cCards,
+            correctCount: cCorrectCount,
+            hasMistake: cHasMistake,
+            basePoints: 0,
+            multiplier: 1.0,
+            comboName: "Single Strike",
+            scoreDelta: 0
+        }
+    };
+
+    // Calculate Opponent base
+    if (!context.opponent.hasMistake && context.opponent.correctCount > 0) {
+        if (context.opponent.correctCount === 2) { context.opponent.multiplier = 1.5; context.opponent.comboName = "Pair Combo!"; }
+        else if (context.opponent.correctCount === 3) { context.opponent.multiplier = 2.5; context.opponent.comboName = "Three of a Kind!"; }
+        else if (context.opponent.correctCount >= 4) { context.opponent.multiplier = 3.0; context.opponent.comboName = "Four of a Kind!"; }
+        context.opponent.scoreDelta = Math.round(50 * context.opponent.multiplier);
+    } else {
+        context.opponent.multiplier = 0;
+        context.opponent.comboName = "Combo Broken!";
+        context.opponent.scoreDelta = -30;
     }
 
-    if (battle.activePowerUps.includes('Reversal')) {
-        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Reversal');
+    // Apply Power-Ups using Strategy Pattern
+    for (const pUp of battle.activePowerUps) {
+        PowerUpEngine.apply(pUp, context);
     }
 
-    if (battle.activePowerUps.includes('Blocker')) {
-        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Blocker');
-    }
+    // One-round duration constraint: wipe all active powerups immediately after applying logic
+    battle.activePowerUps = [];
 
-    let multiplier = 1.0;
-    let comboName = "None";
-    let basePoints = 0;
-
-    let shieldUsed = false;
-    if (hasMistake && battle.activePowerUps.includes('Shield')) {
-        shieldUsed = true;
-        battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Shield');
-    }
-
-    if (hasMistake) {
-        basePoints = shieldUsed ? 0 : -30;
-        multiplier = 1.0;
-        comboName = "None";
+    // Finalize Player Score
+    if (context.player.hasMistake) {
+        context.player.basePoints = context.player.shieldUsed ? 0 : -30;
+        context.player.multiplier = 1.0;
+        context.player.comboName = "None";
         battle.consecutiveWins = 0;
     } else {
-        basePoints = 50;
+        context.player.basePoints = 50;
         battle.consecutiveWins += 1;
         
-        if (correctCount === 2) {
-            multiplier = 1.5;
-            comboName = "Pair";
-        } else if (correctCount === 3) {
-            multiplier = 2.5;
-            comboName = "Three of a Kind";
-        } else if (correctCount === 4) {
-            multiplier = 3.0;
-            comboName = "Flush";
-        } else if (correctCount >= 5) {
-            multiplier = 4.0;
-            comboName = "Full House";
-        }
-        
-        if (battle.activePowerUps.includes('Quick Counter') && battle.consecutiveWins >= 2) {
-            battle.permanentMultiplier = 2.0;
-            battle.activePowerUps = battle.activePowerUps.filter(p => p !== 'Quick Counter');
+        if (context.player.correctCount === 2) {
+            context.player.multiplier = 1.5;
+            context.player.comboName = "Pair";
+        } else if (context.player.correctCount === 3) {
+            context.player.multiplier = 2.5;
+            context.player.comboName = "Three of a Kind";
+        } else if (context.player.correctCount === 4) {
+            context.player.multiplier = 3.0;
+            context.player.comboName = "Flush";
+        } else if (context.player.correctCount >= 5) {
+            context.player.multiplier = 4.0;
+            context.player.comboName = "Full House";
         }
     }
-    
-    let pointsEarned = Math.round(basePoints * multiplier);
+
+    let pointsEarned = Math.round(context.player.basePoints * context.player.multiplier);
     if (pointsEarned > 0 && battle.permanentMultiplier > 1.0) {
         pointsEarned = Math.round(pointsEarned * battle.permanentMultiplier);
     }
@@ -479,7 +530,6 @@ For each question, you MUST generate EXACTLY 5 cards in the deck. Some must be c
     
     if (pointsEarned > 0) {
         battle.hpMilestoneProgress += pointsEarned;
-        battle.powerUpMilestoneProgress += pointsEarned;
         
         while (battle.hpMilestoneProgress >= 250) {
             triggerHpEvent = true;
@@ -487,17 +537,26 @@ For each question, you MUST generate EXACTLY 5 cards in the deck. Some must be c
         }
         
         // Power-Up Milestone: Every 100 points reached (Max 3 inventory slots)
-        while (battle.powerUpMilestoneProgress >= 100) {
-            battle.powerUpMilestoneProgress -= 100;
-            if (battle.inventory.length < 3) {
-                const powerUps = ['Shield', 'Wildcard', 'Quick Counter', 'The Joker', 'Reversal', 'Blocker'];
-                powerUpGranted = powerUps[Math.floor(Math.random() * powerUps.length)];
-                battle.inventory.push(powerUpGranted);
+        const currentMilestone = Math.floor(battle.totalPoints / 100) * 100;
+        const lastMilestone = battle.lastPowerCardMilestoneAchieved || 0;
+        
+        if (currentMilestone >= 100 && currentMilestone > lastMilestone) {
+            const milestonesCrossed = Math.floor((currentMilestone - lastMilestone) / 100);
+            for (let i = 0; i < milestonesCrossed; i++) {
+                if (battle.inventory.length < 3) {
+                    const powerUps = ['Shield', 'Wildcard', 'Quick Counter', 'The Joker', 'Reversal', 'Blocker'];
+                    powerUpGranted = powerUps[Math.floor(Math.random() * powerUps.length)];
+                    battle.inventory.push(powerUpGranted);
+                }
             }
+            battle.lastPowerCardMilestoneAchieved = currentMilestone;
         }
     }
 
-    const actionSummary = hasMistake ? (shieldUsed ? 'Shield blocked loss' : 'Loss') : 'Win';
+    // Apply opponent score delta to computerScore
+    battle.computerScore = Math.max(0, (battle.computerScore || 0) + context.opponent.scoreDelta);
+
+    const actionSummary = context.player.hasMistake ? (context.player.shieldUsed ? 'Shield blocked loss' : 'Loss') : 'Win';
 
     battle.currentQuestion = null;
 
@@ -528,9 +587,9 @@ For each question, you MUST generate EXACTLY 5 cards in the deck. Some must be c
     return {
       success: true,
       actionSummary,
-      comboName,
-      basePoints,
-      multiplier,
+      comboName: context.player.comboName,
+      basePoints: context.player.basePoints,
+      multiplier: context.player.multiplier,
       permanentMultiplier: battle.permanentMultiplier,
       pointsEarned,
       milestoneChecks: {
@@ -539,8 +598,16 @@ For each question, you MUST generate EXACTLY 5 cards in the deck. Some must be c
         hpProgress: battle.hpMilestoneProgress,
         powerUpProgress: battle.powerUpMilestoneProgress
       },
+      computerResult: {
+        cards: context.opponent.playedCards,
+        comboName: context.opponent.comboName,
+        multiplier: context.opponent.multiplier,
+        scoreDelta: context.opponent.scoreDelta,
+        totalScore: battle.computerScore
+      },
       battle: {
         totalPoints: battle.totalPoints,
+        computerScore: battle.computerScore,
         inventory: battle.inventory,
         activePowerUps: battle.activePowerUps,
         currentRound: battle.currentRound,

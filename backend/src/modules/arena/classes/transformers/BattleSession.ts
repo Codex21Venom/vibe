@@ -23,12 +23,20 @@ export class BattleSession {
   totalPoints: number;
 
   @Expose()
+  @JSONSchema({ title: 'Computer Score', type: 'number' })
+  computerScore: number;
+
+  @Expose()
   @JSONSchema({ title: 'HP Milestone Progress', type: 'number' })
   hpMilestoneProgress: number;
 
   @Expose()
   @JSONSchema({ title: 'Power-Up Milestone Progress', type: 'number' })
   powerUpMilestoneProgress: number;
+
+  @Expose()
+  @JSONSchema({ title: 'Last Power Card Milestone Achieved', type: 'number' })
+  lastPowerCardMilestoneAchieved: number;
 
   @Expose()
   @JSONSchema({ title: 'Inventory', type: 'array', items: { type: 'string' } })
@@ -87,8 +95,10 @@ export class BattleSession {
     this.userId = partial?.userId || '';
     this.courseId = partial?.courseId || '';
     this.totalPoints = partial?.totalPoints ?? 0;
+    this.computerScore = partial?.computerScore ?? 0;
     this.hpMilestoneProgress = partial?.hpMilestoneProgress ?? 0;
     this.powerUpMilestoneProgress = partial?.powerUpMilestoneProgress ?? 0;
+    this.lastPowerCardMilestoneAchieved = partial?.lastPowerCardMilestoneAchieved ?? 0;
     this.inventory = partial?.inventory ?? [];
     this.activePowerUps = partial?.activePowerUps ?? [];
     this.permanentMultiplier = partial?.permanentMultiplier ?? 1.0;
