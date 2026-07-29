@@ -790,7 +790,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
 
       {/* Extend Match Prompt Overlay (Radix UI Dialog) */}
       <Dialog open={roundState === 'extend_prompt'} onOpenChange={() => {}}>
-        <DialogContent className="bg-slate-900 border border-purple-500/50 text-white max-w-xl p-8 rounded-3xl shadow-[0_0_50px_rgba(147,51,234,0.3)] z-50">
+        <DialogContent container={battleContainerRef.current} className="bg-slate-900 border border-purple-500/50 text-white max-w-xl p-8 rounded-3xl shadow-[0_0_50px_rgba(147,51,234,0.3)] z-50">
           <DialogHeader className="text-center">
             <DialogTitle className="text-4xl font-extrabold text-white mb-2">5 Rounds Complete!</DialogTitle>
             <DialogDescription className="text-slate-300 text-lg leading-relaxed mt-2">

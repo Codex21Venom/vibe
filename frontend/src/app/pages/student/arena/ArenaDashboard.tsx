@@ -93,8 +93,11 @@ export default function ArenaDashboard() {
   useEffect(() => {
     let eventSource: EventSource | null = null;
     try {
-      const baseUrl = import.meta.env.VITE_BASE_URL ?? '';
-      eventSource = new EventSource(`${baseUrl}/api/arena/events/stream`);
+      const rawBaseUrl = import.meta.env.VITE_BASE_URL ?? '';
+      const streamUrl = rawBaseUrl.endsWith('/api')
+        ? `${rawBaseUrl}/arena/events/stream`
+        : `${rawBaseUrl}/api/arena/events/stream`;
+      eventSource = new EventSource(streamUrl);
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -367,9 +370,16 @@ export default function ArenaDashboard() {
                 {selectedCourse && (() => {
                   const selectedCourseData = courses.find(c => (c.courseId || c.cohortId) === selectedCourse);
                   const currentProgress = selectedCourseData?.percentCompleted ?? 0;
-                  const isInfinite = selectedCourseData?.infiniteArenaEnabled;
+                  const isInfinite = selectedCourseData?.infiniteArenaEnabled ?? false;
+                  
+                  const eligibility = selectedCourseData?.eligibility || evaluateDynamicArenaState(currentProgress, selectedCourseData?.completedMilestones || []);
+                  const availableCredits = isInfinite ? 999 : (eligibility?.availableCredits ?? 0);
+                  
                   const isProgressInsufficient = !isInfinite && currentProgress < 30;
+                  const isCreditsInsufficient = !isInfinite && availableCredits <= 0;
                   const isHpInsufficient = globalTotalHp < 50;
+
+                  const isButtonDisabled = isProgressInsufficient || isCreditsInsufficient || (isHpInsufficient && mode === 'pvc');
 
                   return (
                     <>
@@ -377,6 +387,11 @@ export default function ArenaDashboard() {
                         {isProgressInsufficient && (
                           <div className="text-amber-400 mb-3 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 text-center font-medium">
                             ⚠️ You must complete at least 30% of this course to play in the Arena. (Current Progress: {currentProgress}%)
+                          </div>
+                        )}
+                        {!isProgressInsufficient && isCreditsInsufficient && (
+                          <div className="text-amber-400 mb-3 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 text-center font-medium">
+                            ⚠️ You have 0 credits. Complete more course milestones (30%, 50%, 70%, 90%, 100%) to unlock Arena battles!
                           </div>
                         )}
                         {isHpInsufficient && (
@@ -388,7 +403,7 @@ export default function ArenaDashboard() {
                           <button 
                             onClick={handleEnterBattle} 
                             className="arena-btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-xl py-4 px-12"
-                            disabled={isProgressInsufficient || (isHpInsufficient && mode === 'pvc')}
+                            disabled={isButtonDisabled}
                           >
                             <span>{mode === 'pvc' ? 'Enter Battle' : 'Find Opponent'}</span>
                           </button>

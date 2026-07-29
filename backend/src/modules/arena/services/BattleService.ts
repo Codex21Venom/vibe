@@ -58,9 +58,28 @@ export class BattleService {
   }
 
   public async startBattle(userId: string, courseId: string): Promise<BattleSession> {
-    const { progressPercent } = await this.getUserCourseProgress(userId, courseId);
-    if (progressPercent < 30) {
-      throw new Error(`You must complete at least 30% of the course to enter the Arena. (Current progress: ${progressPercent}%)`);
+    const course = await this.courseRepo.read(courseId);
+    const isInfinite = course?.infiniteArenaEnabled ?? false;
+
+    const { progressPercent, courseEnrollment } = await this.getUserCourseProgress(userId, courseId);
+    const completedMilestones: number[] = courseEnrollment?.arenaProgress?.completedMilestones || [];
+
+    // Evaluation Order:
+    // 1. Check course.infiniteArenaEnabled. If true, bypass all credit and progress checks.
+    if (!isInfinite) {
+      if (progressPercent < 30) {
+        const err: any = new Error(`You must complete at least 30% of the course to enter the Arena. (Current progress: ${progressPercent}%)`);
+        (err as any).httpCode = 403;
+        throw err;
+      }
+
+      const { evaluateArenaEligibility } = await import('./ArenaService.js');
+      const eligibility = evaluateArenaEligibility(progressPercent, completedMilestones);
+      if (eligibility.availableCredits <= 0) {
+        const err: any = new Error('Insufficient credits. Progress through the course to earn more.');
+        (err as any).httpCode = 403;
+        throw err;
+      }
     }
 
     // End any existing active battles for this user
@@ -103,19 +122,21 @@ export class BattleService {
       throw new Error(`Round limit of ${maxRounds} reached. Battle must be extended or concluded.`);
     }
 
+    // Fetch the course to get its name and description as context for the AI
+    const course = await this.courseRepo.read(battle.courseId.toString());
+    if (!course) {
+        throw new Error('Course not found');
+    }
+
+    const isInfinite = course.infiniteArenaEnabled ?? false;
+
     const { progressPercent, courseEnrollment, completedItemIds } = await this.getUserCourseProgress(
       battle.userId.toString(),
       battle.courseId.toString()
     );
 
-    if (progressPercent < 30) {
+    if (!isInfinite && progressPercent < 30) {
       throw new Error(`You must complete at least 30% of the course to enter the Arena. (Current progress: ${progressPercent}%)`);
-    }
-
-    // Fetch the course to get its name and description as context for the AI
-    const course = await this.courseRepo.read(battle.courseId.toString());
-    if (!course) {
-        throw new Error('Course not found');
     }
 
     let questionData;
