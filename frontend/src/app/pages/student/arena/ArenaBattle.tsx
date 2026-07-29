@@ -78,7 +78,9 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
   const [comboMultiplier, setComboMultiplier] = useState<number>(1);
   
   const [inventory, setInventory] = useState<string[]>([]);
-  const [selectedPowerUp, setSelectedPowerUp] = useState<string | null>(null);
+  const [selectedPowerUpSlot, setSelectedPowerUpSlot] = useState<number | null>(null);
+  
+  const [highestHpMilestone, setHighestHpMilestone] = useState(0);
   
   const [roundResultText, setRoundResultText] = useState("");
   
@@ -198,7 +200,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
   }, [roundState]);
 
   const triggerHpFadingText = () => {
-    setHpFadingText("+10 HP");
+    setHpFadingText("+20 HP");
     setTimeout(() => {
       setHpFadingText("");
     }, 2500);
@@ -207,15 +209,19 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
   const handlePlayCards = async (cards: Card[]) => {
     if (roundState !== 'playing') return;
     
+    const currentPowerUp = selectedPowerUpSlot !== null ? inventory[selectedPowerUpSlot] : null;
+    const usedPowerUpSlot = selectedPowerUpSlot;
+    setSelectedPowerUpSlot(null);
+    
     let finalCards = cards;
-    if (selectedPowerUp === 'The Joker') {
+    if (currentPowerUp === 'The Joker') {
         finalCards = playerHand.filter(c => c.isCorrect);
     }
     
     setRoundState('resolving');
     setPlayedCards(finalCards);
     
-    if (selectedPowerUp) {
+    if (currentPowerUp) {
       setPowerUpsUsedCount(prev => prev + 1);
     }
     
@@ -226,7 +232,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       try {
          const response = await apiClient.post(`/arena/battle/${battleId}/submit`, { 
              cards: finalCards.map(c => c.name || 'Timeout'),
-             powerUp: selectedPowerUp
+             powerUp: currentPowerUp
          });
          submitRes = response.data;
          setComboName(submitRes.comboName || "Combo Broken!");
@@ -235,10 +241,10 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       }
     }
 
-    if (selectedPowerUp) {
-      setActivePowerupAnim({ name: selectedPowerUp, type: selectedPowerUp });
-      setInventory(prev => prev.filter(p => p !== selectedPowerUp));
-      if (selectedPowerUp === 'Quick Counter') {
+    if (currentPowerUp) {
+      setActivePowerupAnim({ name: currentPowerUp, type: currentPowerUp });
+      setInventory(prev => prev.filter((_, idx) => idx !== usedPowerUpSlot));
+      if (currentPowerUp === 'Quick Counter') {
         setIsCounterActive(true);
       }
       setTimeout(() => {
@@ -284,11 +290,11 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
     
     setTimeout(() => {
       setComputerPlayedCards(compCards);
-      resolveRound(cards, compCards, submitRes, playerScore);
+      resolveRound(cards, compCards, submitRes, playerScore, currentPowerUp);
     }, 1000); 
   };
 
-  const resolveRound = (pCards: Card[], cCards: Card[], submitRes: any, oldScore: number) => {
+  const resolveRound = (pCards: Card[], cCards: Card[], submitRes: any, oldScore: number, currentPowerUp: string | null) => {
     let pScoreDelta = 0;
     let cScoreDelta = 0;
     
@@ -309,10 +315,10 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       let pCorrectCount = pCards.filter(c => c.isCorrect).length;
       let pHasMistake = pCards.some(c => !c.isCorrect);
       
-      if (selectedPowerUp === 'The Joker') {
+      if (currentPowerUp === 'The Joker') {
           pCorrectCount = playerHand.filter(c => c.isCorrect).length;
           pHasMistake = false;
-      } else if (selectedPowerUp === 'Wildcard') {
+      } else if (currentPowerUp === 'Wildcard') {
           pCorrectCount += 1;
       }
 
@@ -351,7 +357,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
         cComboName = "Combo Broken!";
     }
     
-    if (selectedPowerUp === 'Blocker') {
+    if (currentPowerUp === 'Blocker') {
         cMultiplier = 0;
         cComboName = "Blocked!";
     }
@@ -365,7 +371,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
         cScoreDelta = -30;
     }
 
-    if (selectedPowerUp === 'Reversal') {
+    if (currentPowerUp === 'Reversal') {
         cScoreDelta = -cScoreDelta;
         if (cScoreDelta > 0) {
             cComboName = "Reversed to Win!";
@@ -377,12 +383,12 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
     
     const newPlayerScore = oldScore + pScoreDelta;
     
-    // Check Milestones using absolute total points earned (as specified: every 150 points / 500 points)
-    // Wait, is it based on playerScore or totalPointsEarned? The rules say "Every 150 points milestone reached." 
+    // Check Milestones using absolute total points earned (as specified: every 100 points / 500 points)
+    // Wait, is it based on playerScore or totalPointsEarned? The rules say "Every 100 points milestone reached." 
     // Usually this implies the net score or total gross points. Let's use `playerScore` to encourage winning.
-    const old150s = Math.floor(Math.max(0, oldScore) / 150);
-    const new150s = Math.floor(Math.max(0, newPlayerScore) / 150);
-    if (new150s > old150s) {
+    const old100s = Math.floor(Math.max(0, oldScore) / 100);
+    const new100s = Math.floor(Math.max(0, newPlayerScore) / 100);
+    if (new100s > old100s) {
       // Give a power up
       setInventory(prev => {
         if (prev.length < 3) {
@@ -394,14 +400,14 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       resultMsg += " | Power-Up Acquired!";
     }
 
-    const old500s = Math.floor(Math.max(0, oldScore) / 500);
-    const new500s = Math.floor(Math.max(0, newPlayerScore) / 500);
-    if (new500s > old500s) {
-      // Give 10 HP
-      syncGlobalHp(10);
-      setMilestoneHpEarned(prev => prev + 10);
+    const new200s = Math.floor(Math.max(0, newPlayerScore) / 200);
+    if (new200s > highestHpMilestone) {
+      // Give 20 HP
+      syncGlobalHp(20);
+      setMilestoneHpEarned(prev => prev + 20);
       triggerHpFadingText();
-      resultMsg += " | +10 HP Regenerated!";
+      setHighestHpMilestone(new200s);
+      resultMsg += " | +20 HP Regenerated!";
     }
 
     setPlayerScore(Math.max(0, newPlayerScore));
@@ -583,8 +589,8 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
                 <p><strong className="text-white">Three of a kind:</strong> 2.5x Multiplier</p>
                 <p><strong className="text-white">Flush:</strong> 3.0x Multiplier</p>
                 <p><strong className="text-white">Full House:</strong> 4.0x Multiplier</p>
-                <p className="mt-2 text-yellow-400 border-t border-slate-700 pt-3">Every 150 Pts: Random Power-Up (Max 3 Slots)</p>
-                <p className="text-green-400">Every 500 Pts: +10 HP Instantly</p>
+                <p className="mt-2 text-yellow-400 border-t border-slate-700 pt-3">Every 100 Pts: Random Power-Up (Max 3 Slots)</p>
+                <p className="text-green-400">Every 200 Pts: +20 HP Instantly</p>
               </div>
               <h4 className="text-xl font-bold text-white mt-6 mb-4 flex items-center gap-2"><Zap className="text-amber-400"/> Power Cards</h4>
               <div className="space-y-2 text-xs">
@@ -681,12 +687,21 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
         {roundState === 'resolving' && (
           <div className="resolution-area animate-pop-in flex items-center justify-center w-full gap-4 sm:gap-8 pointer-events-auto mt-4">
             {/* Player's Played Cards */}
-            <div className="flex flex-col items-center flex-1">
+            <div className="flex flex-col items-center flex-1 relative">
               {comboName && comboMultiplier > 1 && (
-                <div className="text-amber-400 font-black text-xl sm:text-2xl animate-pulse mb-2">{comboName} (x{comboMultiplier})</div>
+                <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none animate-in zoom-in-75 slide-in-from-bottom-8 duration-500">
+                  <div className="bg-black/80 border-2 border-amber-500 px-6 py-3 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.6)] backdrop-blur-sm transform -rotate-2 flex flex-col items-center">
+                    <div className="text-amber-400 font-black text-3xl sm:text-4xl uppercase tracking-wider drop-shadow-lg">{comboName}</div>
+                    <div className="text-white font-bold text-lg sm:text-xl text-center mt-1">{comboMultiplier}x MULTIPLIER</div>
+                  </div>
+                </div>
               )}
               {comboMultiplier === 0 && (
-                <div className="text-red-500 font-black text-xl sm:text-2xl animate-pulse mb-2">{comboName}</div>
+                <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none animate-in zoom-in-75 slide-in-from-top-8 duration-500">
+                  <div className="bg-red-900/90 border-2 border-red-500 px-6 py-3 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.6)] backdrop-blur-sm transform rotate-2 flex flex-col items-center">
+                    <div className="text-red-400 font-black text-3xl sm:text-4xl uppercase tracking-wider drop-shadow-lg">{comboName || "COMBO BROKEN"}</div>
+                  </div>
+                </div>
               )}
               <div className="flex gap-2 justify-center flex-wrap">
                 {playedCards.map(c => (
@@ -700,12 +715,21 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
             <div className="text-4xl sm:text-5xl font-black text-white/20 px-2 sm:px-4 italic">VS</div>
 
             {/* Computer's Played Cards */}
-            <div className="flex flex-col items-center flex-1">
+            <div className="flex flex-col items-center flex-1 relative">
               {computerComboName && computerComboMultiplier > 1 && (
-                <div className="text-amber-400 font-black text-xl sm:text-2xl animate-pulse mb-2">{computerComboName} (x{computerComboMultiplier})</div>
+                <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none animate-in zoom-in-75 slide-in-from-top-8 duration-500 delay-300">
+                  <div className="bg-black/80 border-2 border-amber-500 px-6 py-3 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.6)] backdrop-blur-sm transform rotate-2 flex flex-col items-center">
+                    <div className="text-amber-400 font-black text-3xl sm:text-4xl uppercase tracking-wider drop-shadow-lg">{computerComboName}</div>
+                    <div className="text-white font-bold text-lg sm:text-xl text-center mt-1">{computerComboMultiplier}x MULTIPLIER</div>
+                  </div>
+                </div>
               )}
               {computerComboMultiplier === 0 && (
-                <div className="text-red-500 font-black text-xl sm:text-2xl animate-pulse mb-2">{computerComboName}</div>
+                <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none animate-in zoom-in-75 slide-in-from-bottom-8 duration-500 delay-300">
+                  <div className="bg-red-900/90 border-2 border-red-500 px-6 py-3 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.6)] backdrop-blur-sm transform -rotate-2 flex flex-col items-center">
+                    <div className="text-red-400 font-black text-3xl sm:text-4xl uppercase tracking-wider drop-shadow-lg">{computerComboName || "COMBO BROKEN"}</div>
+                  </div>
+                </div>
               )}
               {computerPlayedCards.length > 0 ? (
                 <div className="flex gap-2 justify-center flex-wrap">
@@ -770,13 +794,13 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
           {[0, 1, 2].map((slotIdx) => {
             const powerup = inventory[slotIdx];
             if (powerup) {
-              const isSelected = selectedPowerUp === powerup;
+              const isSelected = selectedPowerUpSlot === slotIdx;
               return (
                 <div 
                   key={slotIdx} 
                   onClick={() => {
                     if (roundState === 'playing') {
-                       setSelectedPowerUp(prev => prev === powerup ? null : powerup);
+                       setSelectedPowerUpSlot(prev => prev === slotIdx ? null : slotIdx);
                     }
                   }}
                   className={`group relative flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600 rounded-xl cursor-pointer transition-all ${isSelected ? 'ring-2 ring-amber-400 -translate-y-2 sm:-translate-y-4 scale-110 shadow-[0_0_20px_rgba(245,158,11,0.6)]' : 'hover:-translate-y-2 hover:border-slate-400 shadow-lg'}`}
