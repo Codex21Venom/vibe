@@ -59,6 +59,10 @@ export class BattleSession {
   currentQuestion?: any;
 
   @Expose()
+  @JSONSchema({ title: 'Cached Questions', type: 'array', items: { type: 'object' } })
+  cachedQuestions?: any[];
+
+  @Expose()
   @Type(() => Date)
   @JSONSchema({ title: 'Created At', type: 'string', format: 'date-time' })
   createdAt: Date;
@@ -76,6 +80,7 @@ export class BattleSession {
     this.turnNumber = partial?.turnNumber ?? 1;
     this.isActive = partial?.isActive ?? true;
     this.currentQuestion = partial?.currentQuestion || null;
+    this.cachedQuestions = partial?.cachedQuestions ?? [];
     this.createdAt = new Date();
   }
 }
