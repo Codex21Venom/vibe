@@ -81,6 +81,9 @@ export class BattleService {
       permanentMultiplier: 1.0,
       consecutiveWins: 0,
       turnNumber: 1,
+      currentRound: 1,
+      maxRounds: 5,
+      extended: false,
       isActive: true,
     });
 
@@ -91,6 +94,13 @@ export class BattleService {
     const battle = await this.arenaRepo.getBattleById(battleId);
     if (!battle || !battle.isActive) {
       throw new Error('Battle not found or inactive');
+    }
+
+    const currentRound = battle.currentRound ?? 1;
+    const maxRounds = battle.maxRounds ?? 5;
+
+    if (currentRound > maxRounds || (currentRound === maxRounds && !battle.currentQuestion && (battle.turnNumber || 1) > maxRounds)) {
+      throw new Error(`Round limit of ${maxRounds} reached. Battle must be extended or concluded.`);
     }
 
     const { progressPercent, courseEnrollment, completedItemIds } = await this.getUserCourseProgress(
@@ -428,6 +438,24 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
 
     battle.currentQuestion = null;
 
+    const maxRounds = battle.maxRounds ?? 5;
+    const currentRound = battle.currentRound ?? 1;
+
+    // Advance round or update status if cap reached
+    if (currentRound < maxRounds) {
+      battle.currentRound = currentRound + 1;
+      battle.turnNumber = (battle.turnNumber || 1) + 1;
+      battle.status = 'ACTIVE';
+    } else if (currentRound === maxRounds) {
+      battle.turnNumber = (battle.turnNumber || 1) + 1;
+      if (maxRounds === 5) {
+        battle.status = 'AWAITING_EXTENSION';
+      } else if (maxRounds >= 10) {
+        battle.isActive = false; // Auto terminate when 10-round cap reached
+        battle.status = 'COMPLETED';
+      }
+    }
+
     await this.arenaRepo.saveBattle(battle);
 
     if (battle._id) {
@@ -452,7 +480,88 @@ You MUST generate EXACTLY 5 cards in the deck. Some must be correct concepts req
         totalPoints: battle.totalPoints,
         inventory: battle.inventory,
         activePowerUps: battle.activePowerUps,
+        currentRound: battle.currentRound,
+        maxRounds: battle.maxRounds,
+        extended: battle.extended ?? false,
+        status: battle.status || 'ACTIVE',
         isActive: battle.isActive
+      }
+    };
+  }
+
+  public async extendBattle(battleId: string): Promise<any> {
+    const battle = await this.arenaRepo.getBattleById(battleId);
+    if (!battle) {
+      throw new Error('Battle not found');
+    }
+
+    // Idempotency check: If already extended to 10 rounds (e.g. double dispatch/race condition), return success gracefully instead of throwing 500 error
+    if (battle.extended && battle.maxRounds === 10) {
+      return {
+        success: true,
+        message: 'Battle is already extended to 10 rounds.',
+        battle: {
+          _id: battle._id ? battle._id.toString() : undefined,
+          currentRound: battle.currentRound,
+          maxRounds: battle.maxRounds,
+          extended: battle.extended,
+          status: battle.status || 'ACTIVE',
+          isActive: battle.isActive
+        }
+      };
+    }
+
+    if (!battle.isActive) {
+      throw new Error('Battle not found or inactive');
+    }
+
+    const currentRound = battle.currentRound ?? 1;
+    const maxRounds = battle.maxRounds ?? 5;
+
+    if (maxRounds !== 5 || currentRound !== 5) {
+      throw new Error('Battle cannot be extended. Extension is only permitted at Round 5.');
+    }
+
+    battle.maxRounds = 10;
+    battle.extended = true;
+    battle.currentRound = 6;
+    battle.status = 'ACTIVE';
+    await this.arenaRepo.saveBattle(battle);
+
+    return {
+      success: true,
+      message: 'Battle extended to 10 rounds.',
+      battle: {
+        _id: battle._id ? battle._id.toString() : undefined,
+        currentRound: battle.currentRound,
+        maxRounds: battle.maxRounds,
+        extended: battle.extended,
+        status: battle.status,
+        isActive: battle.isActive
+      }
+    };
+  }
+
+  public async concludeBattle(battleId: string): Promise<any> {
+    const battle = await this.arenaRepo.getBattleById(battleId);
+    if (!battle) {
+      throw new Error('Battle not found');
+    }
+
+    battle.isActive = false;
+    battle.status = 'COMPLETED';
+    await this.arenaRepo.saveBattle(battle);
+
+    return {
+      success: true,
+      message: 'Battle concluded.',
+      battle: {
+        _id: battle._id ? battle._id.toString() : undefined,
+        totalPoints: battle.totalPoints,
+        currentRound: battle.currentRound,
+        maxRounds: battle.maxRounds,
+        status: battle.status,
+        isActive: false
       }
     };
   }

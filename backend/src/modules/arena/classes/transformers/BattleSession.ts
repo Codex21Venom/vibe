@@ -51,6 +51,22 @@ export class BattleSession {
   turnNumber: number;
 
   @Expose()
+  @JSONSchema({ title: 'Current Round', type: 'number' })
+  currentRound: number;
+
+  @Expose()
+  @JSONSchema({ title: 'Max Rounds', type: 'number' })
+  maxRounds: number;
+
+  @Expose()
+  @JSONSchema({ title: 'Extended', type: 'boolean' })
+  extended: boolean;
+
+  @Expose()
+  @JSONSchema({ title: 'Status', type: 'string' })
+  status: string;
+
+  @Expose()
   @JSONSchema({ title: 'Is Active', type: 'boolean' })
   isActive: boolean;
 
@@ -74,6 +90,10 @@ export class BattleSession {
     this.permanentMultiplier = partial?.permanentMultiplier ?? 1.0;
     this.consecutiveWins = partial?.consecutiveWins ?? 0;
     this.turnNumber = partial?.turnNumber ?? 1;
+    this.currentRound = partial?.currentRound ?? 1;
+    this.maxRounds = partial?.maxRounds ?? 5;
+    this.extended = partial?.extended ?? false;
+    this.status = partial?.status || 'ACTIVE';
     this.isActive = partial?.isActive ?? true;
     this.currentQuestion = partial?.currentQuestion || null;
     this.createdAt = new Date();

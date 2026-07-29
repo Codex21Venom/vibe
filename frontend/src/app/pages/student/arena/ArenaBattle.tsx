@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { AuroraText } from "@/components/magicui/aurora-text";
 import { Swords, Shield, Zap, RefreshCw, Crosshair, Play, Pause, X, Info } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import "./arena.css";
 
 interface ArenaBattleProps {
@@ -51,6 +52,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
   
   const [isExtended, setIsExtended] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
   const [highestComboMultiplier, setHighestComboMultiplier] = useState(1);
   
   const [activePowerupAnim, setActivePowerupAnim] = useState<{name: string, type: string} | null>(null);
@@ -124,12 +126,52 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
     }
   };
 
+  const handleExtendBattle = async () => {
+    if (!battleId || isActionSubmitting) return;
+    setIsActionSubmitting(true);
+    try {
+      const res = await apiClient.post(`/arena/battle/${battleId}/extend`);
+      if (res.data && res.data.success) {
+        setIsExtended(true);
+        startNewRound(6);
+      } else {
+        alert("Failed to extend battle.");
+      }
+    } catch (err: any) {
+      console.error("Failed extending battle:", err);
+      alert(err?.response?.data?.message || "Failed to extend battle.");
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const handleConcludeBattle = async () => {
+    if (!battleId || isActionSubmitting) return;
+    setIsActionSubmitting(true);
+    try {
+      await apiClient.post(`/arena/battle/${battleId}/conclude`);
+    } catch (err) {
+      console.error("Failed concluding battle:", err);
+    } finally {
+      setIsActionSubmitting(false);
+    }
+    setRoundState('game_over');
+  };
+
   const startNewRound = async (roundNum: number, bId?: string) => {
     if (!isExtended && roundNum > 5) {
       setRoundState('extend_prompt');
       return;
     }
     if (roundNum > 10) {
+      const activeBattleId = bId || battleId;
+      if (activeBattleId) {
+        try {
+          await apiClient.post(`/arena/battle/${activeBattleId}/conclude`);
+        } catch (err) {
+          console.error("Failed concluding battle on cap:", err);
+        }
+      }
       setRoundState('game_over');
       return;
     }
@@ -252,18 +294,8 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       }, 2000);
     }
     
-    try {
-      const submitRes = await apiClient.post(`/arena/v1/battle/${battleId}/answer`, {
-        roundNumber: currentRound,
-        cardIds: cards.map(c => c.id)
-      });
-      if (submitRes.success) {
-         if (submitRes.battle.inventory) {
-           setInventory(submitRes.battle.inventory);
-         }
-      }
-    } catch (e) {
-       console.error("Failed submitting answer", e);
+    if (submitRes && submitRes.battle && submitRes.battle.inventory) {
+      setInventory(submitRes.battle.inventory);
     }
     
     const correctCards = playerHand.filter(c => c.isCorrect);
@@ -756,34 +788,39 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
         )}
       </div>
 
-      {/* Extend Match Prompt Overlay */}
-      {roundState === 'extend_prompt' && (
-        <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-auto">
-          <div className="animate-pop-in bg-slate-900/95 p-10 rounded-3xl border border-purple-500 max-w-xl text-center shadow-[0_0_50px_rgba(147,51,234,0.2)]">
-            <h3 className="text-4xl font-bold text-white mb-4">5 Rounds Complete!</h3>
-            <p className="text-xl text-slate-300 mb-10 leading-relaxed">
-              You have survived the initial phase. Cash out with your current score, or extend the match to 10 rounds for a chance at greater glory?
-            </p>
-            <div className="flex flex-col gap-4">
-              <button 
-                onClick={() => {
-                  setIsExtended(true);
-                  startNewRound(6);
-                }}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-4 px-8 rounded-2xl transition-transform hover:scale-[1.02] text-xl shadow-lg"
-              >
-                Extend to 10 Rounds
-              </button>
-              <button 
-                onClick={() => setRoundState('game_over')}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-4 px-8 rounded-2xl transition-colors text-lg"
-              >
-                End Match Now
-              </button>
-            </div>
+      {/* Extend Match Prompt Overlay (Radix UI Dialog) */}
+      <Dialog open={roundState === 'extend_prompt'} onOpenChange={() => {}}>
+        <DialogContent className="bg-slate-900 border border-purple-500/50 text-white max-w-xl p-8 rounded-3xl shadow-[0_0_50px_rgba(147,51,234,0.3)] z-50">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-4xl font-extrabold text-white mb-2">5 Rounds Complete!</DialogTitle>
+            <DialogDescription className="text-slate-300 text-lg leading-relaxed mt-2">
+              You have survived the initial phase! Would you like to conclude the match now with your current score, or extend (+5 rounds) for a hard cap of 10 total rounds?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 mt-6">
+            <button 
+              onClick={handleExtendBattle}
+              disabled={isActionSubmitting}
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-8 rounded-2xl transition-transform hover:scale-[1.02] text-xl shadow-lg flex items-center justify-center gap-2"
+            >
+              {isActionSubmitting ? (
+                <RefreshCw className="w-6 h-6 animate-spin text-amber-400" />
+              ) : (
+                <Zap className="w-6 h-6 text-amber-400 fill-amber-400" />
+              )}
+              {isActionSubmitting ? "Extending Match..." : "Extend to 10 Rounds (+5)"}
+            </button>
+            <button 
+              onClick={handleConcludeBattle}
+              disabled={isActionSubmitting}
+              className="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 font-bold py-4 px-8 rounded-2xl transition-colors text-lg"
+            >
+              Conclude Match & Summary
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* BOTTOM HUD */}
       
