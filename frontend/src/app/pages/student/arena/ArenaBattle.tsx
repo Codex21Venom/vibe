@@ -53,6 +53,9 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
   const [isPaused, setIsPaused] = useState(false);
   const [highestComboMultiplier, setHighestComboMultiplier] = useState(1);
   
+  const [activePowerupAnim, setActivePowerupAnim] = useState<{name: string, type: string} | null>(null);
+  const [isCounterActive, setIsCounterActive] = useState(false);
+  
   const [playerScore, setPlayerScore] = useState(0);
   const [computerScore, setComputerScore] = useState(0);
 
@@ -227,27 +230,36 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
          });
          submitRes = response.data;
          setComboName(submitRes.comboName || "Combo Broken!");
-         setComboMultiplier(submitRes.multiplier || 0);
-         setHighestComboMultiplier(prev => Math.max(prev, submitRes.multiplier || 1));
-         
-         // Remove used powerup from inventory locally
-         if (selectedPowerUp) {
-           setInventory(prev => prev.filter(p => p !== selectedPowerUp));
-         }
-         setSelectedPowerUp(null); 
-         
-         if (submitRes.battle) {
-             // API inventory syncing if it supports it
-             if (submitRes.battle.inventory) {
-               setInventory(submitRes.battle.inventory);
-             }
-         }
-      } catch (e) {
-         console.error("Failed submitting answer", e);
+      } catch (error) {
+         console.error("API error", error);
       }
     }
+
+    if (selectedPowerUp) {
+      setActivePowerupAnim({ name: selectedPowerUp, type: selectedPowerUp });
+      setInventory(prev => prev.filter(p => p !== selectedPowerUp));
+      if (selectedPowerUp === 'Quick Counter') {
+        setIsCounterActive(true);
+      }
+      setTimeout(() => {
+        setActivePowerupAnim(null);
+      }, 2000);
+    }
     
-    // Calculate Computer logic
+    try {
+      const submitRes = await apiClient.post(`/arena/v1/battle/${battleId}/answer`, {
+        roundNumber: currentRound,
+        cardIds: cards.map(c => c.id)
+      });
+      if (submitRes.success) {
+         if (submitRes.battle.inventory) {
+           setInventory(submitRes.battle.inventory);
+         }
+      }
+    } catch (e) {
+       console.error("Failed submitting answer", e);
+    }
+    
     const correctCards = playerHand.filter(c => c.isCorrect);
     const distractors = playerHand.filter(c => !c.isCorrect);
     
@@ -272,7 +284,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
     
     setTimeout(() => {
       setComputerPlayedCards(compCards);
-      resolveRound(cards, compCards, submitRes, oldScore);
+      resolveRound(cards, compCards, submitRes, playerScore);
     }, 1000); 
   };
 
@@ -523,8 +535,34 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
     );
   }
 
+  const renderPowerupAnim = () => {
+    if (!activePowerupAnim) return null;
+    const { type } = activePowerupAnim;
+    let icon = null;
+    let text = "";
+    if (type === 'Shield') { text = "SHIELDED"; icon = <Shield className="w-32 h-32 text-blue-400 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(96,165,250,0.8)]" />; }
+    else if (type === 'Blocker') { text = "BLOCKED"; icon = <X className="w-32 h-32 text-red-500 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]" />; }
+    else if (type === 'The Joker') { text = "HAHAHA"; icon = <div className="text-[120px] mb-4 animate-bounce drop-shadow-2xl">🤡</div>; } 
+    else if (type === 'Wildcard') { text = "WILDCARD"; icon = <Zap className="w-32 h-32 text-yellow-400 mx-auto mb-4 animate-pulse drop-shadow-[0_0_20px_rgba(250,204,21,0.8)]" />; }
+    else if (type === 'Quick Counter') { text = "COUNTERED"; icon = <Swords className="w-32 h-32 text-orange-500 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(249,115,22,0.8)]" />; }
+    else if (type === 'Reversal') { text = "REVERSED"; icon = <RefreshCw className="w-32 h-32 text-green-400 mx-auto mb-4 animate-spin drop-shadow-[0_0_20px_rgba(74,222,128,0.8)]" />; }
+
+    return (
+      <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="text-center animate-in zoom-in-50 duration-500">
+          {icon}
+          <h1 className="text-6xl md:text-8xl font-black text-white tracking-widest uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.6)]" style={{ WebkitTextStroke: '2px black' }}>
+            {text}
+          </h1>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div ref={battleContainerRef} className="game-fullscreen-container bg-[#0b0c10] overflow-hidden relative w-full h-screen">
+      
+      {renderPowerupAnim()}
       
       {/* Floating HP Fading Text */}
       {hpFadingText && (
@@ -538,15 +576,21 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
         <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in">
           <div className="bg-[#1a1a24] p-8 rounded-2xl border border-slate-700 w-full max-w-2xl flex gap-8 shadow-2xl">
             {/* Rules Section */}
-            <div className="flex-1 bg-slate-900 p-6 rounded-xl text-sm text-slate-300 border border-slate-700/50">
-              <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Info className="text-purple-400"/> Game Rules</h4>
+            <div className="flex-1 bg-slate-900 p-6 rounded-xl text-sm text-slate-300 border border-slate-700/50 overflow-y-auto max-h-[70vh]">
+              <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Info className="text-purple-400"/> Game Rules & Combos</h4>
               <div className="space-y-3">
                 <p><strong className="text-white">Pairs:</strong> 1.5x Multiplier</p>
                 <p><strong className="text-white">Three of a kind:</strong> 2.5x Multiplier</p>
                 <p><strong className="text-white">Flush:</strong> 3.0x Multiplier</p>
                 <p><strong className="text-white">Full House:</strong> 4.0x Multiplier</p>
-                <p className="mt-2 text-yellow-400 border-t border-slate-700 pt-3">Every 100 Pts: Random Power-Up (Max 3 Slots)</p>
+                <p className="mt-2 text-yellow-400 border-t border-slate-700 pt-3">Every 150 Pts: Random Power-Up (Max 3 Slots)</p>
                 <p className="text-green-400">Every 500 Pts: +10 HP Instantly</p>
+              </div>
+              <h4 className="text-xl font-bold text-white mt-6 mb-4 flex items-center gap-2"><Zap className="text-amber-400"/> Power Cards</h4>
+              <div className="space-y-2 text-xs">
+                {Object.entries(POWERUP_DESCRIPTIONS).map(([name, desc]) => (
+                  <p key={name}><strong className="text-amber-400">{name}:</strong> {desc}</p>
+                ))}
               </div>
             </div>
             
@@ -602,7 +646,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       </div>
 
       {/* MIDDLE BOARD */}
-      <div className="absolute inset-0 z-20 flex flex-col justify-center items-center pointer-events-none px-4 pt-16 pb-32">
+      <div className="absolute inset-0 z-20 flex flex-col justify-center items-center pointer-events-none px-4 pt-16 pb-[250px]">
         <div className="mb-4 font-bold text-slate-500 tracking-widest bg-slate-900/50 px-4 py-1 rounded-full text-sm pointer-events-auto shadow-md">
           ROUND {currentRound} / {isExtended ? 10 : 5}
         </div>
@@ -646,7 +690,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
               )}
               <div className="flex gap-2 justify-center flex-wrap">
                 {playedCards.map(c => (
-                  <div key={c.id} className={`playing-card scale-[0.55] sm:scale-[0.65] origin-top ${c.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'} shadow-2xl mx-[-10px]`}>
+                  <div key={c.id} className={`playing-card scale-[0.55] sm:scale-[0.65] origin-top ${c.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'} shadow-2xl mx-[-10px] animate-in slide-in-from-bottom-8 fade-in duration-500`}>
                     <div className="card-title text-xs sm:text-sm mt-8 line-clamp-3" title={c.name}>{c.name}</div>
                   </div>
                 ))}
@@ -666,7 +710,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
               {computerPlayedCards.length > 0 ? (
                 <div className="flex gap-2 justify-center flex-wrap">
                   {computerPlayedCards.map(c => (
-                    <div key={c.id} className={`playing-card scale-[0.55] sm:scale-[0.65] origin-top ${c.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'} animate-pop-in shadow-2xl mx-[-10px]`}>
+                    <div key={c.id} className={`playing-card scale-[0.55] sm:scale-[0.65] origin-top ${c.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'} shadow-2xl mx-[-10px] animate-in slide-in-from-top-8 fade-in duration-500 delay-300 fill-mode-backwards`}>
                       <div className="card-title text-xs sm:text-sm mt-8 line-clamp-3" title={c.name}>{c.name}</div>
                       <div className={`absolute bottom-4 left-0 right-0 text-center text-[10px] font-bold ${c.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
                         {c.isCorrect ? 'CORRECT' : 'INCORRECT'}
@@ -742,7 +786,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
                   <div className="text-[9px] sm:text-[10px] font-black text-center text-white leading-tight px-1">{powerup}</div>
                   
                   {/* Tooltip popup */}
-                  <div className="absolute bottom-[110%] left-1/2 transform -translate-x-1/2 w-48 p-2 bg-slate-900 border border-amber-500/50 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 flex flex-col gap-1">
+                  <div className="absolute bottom-[110%] left-0 w-48 p-2 bg-slate-900 border border-amber-500/50 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 flex flex-col gap-1">
                     <span className="text-amber-400 font-bold text-xs">{powerup}</span>
                     <span className="text-slate-300 text-[10px] leading-tight text-left">{POWERUP_DESCRIPTIONS[powerup] || powerup}</span>
                   </div>
@@ -767,11 +811,14 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
       <div className="absolute bottom-6 right-4 sm:right-6 z-30 flex flex-col items-end pointer-events-auto bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-green-500/30 backdrop-blur shadow-[0_0_15px_rgba(74,222,128,0.1)]">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="text-right">
-            <div className="text-[10px] sm:text-xs font-bold text-green-400 uppercase tracking-widest">Player (You)</div>
+            <div className="text-[10px] sm:text-xs font-bold text-green-400 uppercase tracking-widest flex items-center justify-end gap-2">
+              Player (You) {isCounterActive && <Swords className="text-orange-500 w-3 h-3 animate-pulse" title="Quick Counter Active"/>}
+            </div>
             <div className="text-2xl sm:text-3xl font-black text-white">{playerScore}</div>
           </div>
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500/20 flex items-center justify-center relative">
             <Shield className="text-green-400 w-5 h-5 sm:w-6 sm:h-6" />
+            {isCounterActive && <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-[2px] shadow-[0_0_10px_rgba(249,115,22,0.8)]"><Swords className="w-3 h-3 text-white"/></div>}
           </div>
         </div>
         <div className="mt-2 text-[10px] sm:text-xs text-slate-300 bg-slate-800/80 px-2 py-1 rounded w-full text-center">
@@ -795,7 +842,7 @@ export default function ArenaBattle({ courseId, baitedHp, milestoneThreshold, on
                 }
               }}
               className={`playing-card ${card.type === 'POWER_UP' ? 'powerup-card' : 'concept-card'} 
-                         ${selectedCards.some(sc => sc.id === card.id) ? 'selected ring-4 ring-purple-500 transform -translate-y-4 sm:-translate-y-6 shadow-[0_0_30px_rgba(147,51,234,0.4)] z-20' : 'hover:-translate-y-2 z-10'} 
+                         ${selectedCards.some(sc => sc.id === card.id) ? 'selected ring-4 ring-purple-500 transform -translate-y-4 sm:-translate-y-6 scale-105 sm:scale-110 shadow-[0_0_30px_rgba(147,51,234,0.4)] z-20 animate-in zoom-in-[1.02] duration-200' : 'hover:-translate-y-2 z-10'} 
                          ${roundState !== 'playing' ? 'disabled opacity-75' : ''} transition-all duration-200 cursor-pointer mx-0 sm:mx-1`}
             >
               <div className="card-type text-left w-full mb-1 sm:mb-2">
