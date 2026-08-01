@@ -74,9 +74,9 @@ export class BattleService {
         throw err;
       }
 
-      const { evaluateArenaEligibility } = await import('./ArenaService.js');
-      const eligibility = evaluateArenaEligibility(progressPercent, completedMilestones);
-      if (eligibility.availableCredits <= 0) {
+      const { MILESTONE_TIERS } = await import('./ArenaService.js');
+      const unlockedCount = MILESTONE_TIERS.filter(tier => progressPercent >= tier.threshold).length;
+      if (completedMilestones.length > unlockedCount) {
         const err: any = new Error('Insufficient credits. Progress through the course to earn more.');
         (err as any).httpCode = 403;
         throw err;
