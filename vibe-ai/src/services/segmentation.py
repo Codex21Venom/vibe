@@ -200,52 +200,88 @@ consensus_boundaries
         return consensus, p
     
     # Add intermediate segments to reduce large gaps
-    async def add_intermediate_segments(self, segment_indices, chunks: List[TranscriptSegment], max_gap_seconds=300):
-        """Add intermediate segments if gaps are too large (>5 minutes)"""
-        new_indices = list(segment_indices)
+    async def add_intermediate_segments(self, segment_indices, chunks: List[TranscriptSegment], max_gap_seconds=240):
+        """
+        Add intermediate segments if gaps are too large (> 4-5 minutes).
+        Guarantees that long videos are cleanly chunked into optimal intervals
+        ending on natural sentence boundaries ('.', '?', '!').
+        """
+        if not chunks:
+            return np.array([0])
+
+        def ends_with_sentence_punctuation(text: str) -> bool:
+            cleaned = text.strip().rstrip('"\'»›”’')
+            return cleaned.endswith(('.', '?', '!'))
+
+        # Ensure starting indices is a list and includes 0
+        raw_indices = sorted(list(set([0] + list(segment_indices))))
         
-        for i in range(len(segment_indices) - 1):
-            start_idx = segment_indices[i]
-            end_idx = segment_indices[i + 1]
+        # Build effective boundary pairs including the end of all chunks
+        boundaries = list(raw_indices)
+        if boundaries[-1] != len(chunks):
+            boundaries.append(len(chunks))
+        
+        new_indices = set(raw_indices)
+        
+        for i in range(len(boundaries) - 1):
+            start_idx = boundaries[i]
+            end_idx = boundaries[i + 1]
             
+            if start_idx >= end_idx:
+                continue
+
             # Get time range for this gap
-            start_time = chunks[start_idx].timestamp[1] if start_idx < len(chunks) else 0
-            end_time = chunks[end_idx].timestamp[0] if end_idx < len(chunks) else start_time
+            start_time = chunks[start_idx].timestamp[0] if (chunks[start_idx].timestamp and len(chunks[start_idx].timestamp) >= 1) else 0.0
+            last_chunk_in_gap = chunks[end_idx - 1]
+            end_time = last_chunk_in_gap.timestamp[1] if (last_chunk_in_gap.timestamp and len(last_chunk_in_gap.timestamp) >= 2) else start_time
             gap_duration = end_time - start_time
             
             # If gap is too large, add intermediate segments
-            if gap_duration > max_gap_seconds:
+            if gap_duration > max_gap_seconds and (end_idx - start_idx) > 3:
                 num_splits = int(gap_duration / max_gap_seconds)
-                chunk_gap = end_idx - start_idx
+                target_interval = gap_duration / (num_splits + 1)
                 
+                last_added_idx = start_idx
                 for split_num in range(1, num_splits + 1):
-                    # Calculate intermediate index proportionally
-                    ideal_idx = start_idx + int((chunk_gap * split_num) / (num_splits + 1))
+                    target_time = start_time + (split_num * target_interval)
                     
-                    # Find the closest chunk boundary that ends a sentence
-                    best_idx = ideal_idx
-                    # Search outwards from ideal_idx up to 20 chunks away
-                    for offset in range(20):
-                        # Check right
-                        if ideal_idx + offset < end_idx - 3:
-                            if chunks[ideal_idx + offset - 1].text.strip().endswith(('.', '?', '!')):
-                                best_idx = ideal_idx + offset
+                    # Find candidate chunk whose end timestamp is closest to target_time
+                    ideal_idx = start_idx
+                    min_time_diff = float('inf')
+                    for c_idx in range(last_added_idx + 1, end_idx):
+                        c_end_time = chunks[c_idx - 1].timestamp[1] if (chunks[c_idx - 1].timestamp and len(chunks[c_idx - 1].timestamp) >= 2) else 0.0
+                        diff = abs(c_end_time - target_time)
+                        if diff < min_time_diff:
+                            min_time_diff = diff
+                            ideal_idx = c_idx
+                    
+                    # Search outwards from ideal_idx up to 30 chunks away for sentence boundary
+                    best_idx = None
+                    max_offset = min(30, max(1, (end_idx - start_idx) // 2))
+                    
+                    for offset in range(max_offset):
+                        # Check forward candidate
+                        fwd_idx = ideal_idx + offset
+                        if last_added_idx < fwd_idx < end_idx:
+                            if ends_with_sentence_punctuation(chunks[fwd_idx - 1].text):
+                                best_idx = fwd_idx
                                 break
-                        # Check left
-                        if ideal_idx - offset > start_idx + 3:
-                            if chunks[ideal_idx - offset - 1].text.strip().endswith(('.', '?', '!')):
-                                best_idx = ideal_idx - offset
+                        # Check backward candidate
+                        bwd_idx = ideal_idx - offset
+                        if last_added_idx < bwd_idx < end_idx:
+                            if ends_with_sentence_punctuation(chunks[bwd_idx - 1].text):
+                                best_idx = bwd_idx
                                 break
                     
-                    intermediate_idx = best_idx
-                    
-                    # Make sure it's not too close to existing boundaries
-                    if (intermediate_idx not in new_indices and 
-                        intermediate_idx > start_idx + 3 and 
-                        intermediate_idx < end_idx - 3):
-                        new_indices.append(intermediate_idx)
-        
-        return np.sort(np.array(new_indices))
+                    # Fallback if no sentence boundary found in search window
+                    if best_idx is None:
+                        best_idx = ideal_idx
+
+                    if last_added_idx < best_idx < end_idx:
+                        new_indices.add(best_idx)
+                        last_added_idx = best_idx
+
+        return np.array(sorted(list(new_indices)))
 
     async def segment_transcript(self, transcript: Transcript, segmentation_params: Optional[SegmentationParameters] = None) -> SegmentResponse:
         """
@@ -290,18 +326,17 @@ consensus_boundaries
             segments = {str(endtime): segment_text}
             return SegmentResponse(complete_segments=segments, segments=[float(endtime)], segment_count=1)
 
-        # Generate Embedding of transcript sentences and find topics
-        embedder = SentenceTransformer("all-mpnet-base-v2")
-        embeddings = embedder.encode(sentences)
-
         try:
+            embedder = SentenceTransformer("all-mpnet-base-v2")
+            embeddings = embedder.encode(sentences)
+
             min_topic_size = min(10, max(2, len(sentences) // 2))
-            topic_model = BERTopic(min_topic_size=min_topic_size)
 
             # Run BERTopic multiple times for consensus
             boundary_runs = []
 
             for _ in range(runs_param):
+                topic_model = BERTopic(min_topic_size=min_topic_size)
                 topics = await self.run_bertopic(topic_model, sentences, embeddings)
                 boundaries = await self.dp_segment(topics, lambda_param, noise_id_param)
                 boundary_runs.append(np.array(boundaries))
@@ -314,11 +349,11 @@ consensus_boundaries
             if len(segment_start_indices) == 0:
                 segment_start_indices = np.array([0])
         except Exception as err:
-            print(f"BERTopic segmentation failed ({err}), falling back to single segment.")
+            print(f"BERTopic segmentation failed ({err}), falling back to natural boundary interval chunking.")
             segment_start_indices = np.array([0])
 
-        # Apply intermediate segment addition
-        segment_start_indices = await self.add_intermediate_segments(segment_start_indices, chunks, max_gap_seconds=350)
+        # Apply intermediate segment addition with natural boundary enforcement (target ~4 mins)
+        segment_start_indices = await self.add_intermediate_segments(segment_start_indices, chunks, max_gap_seconds=240)
         
         # Create segments dictionary
         segments = {}
@@ -331,11 +366,8 @@ consensus_boundaries
                 end_idx = len(chunks)
             
             # Collect all text in this segment
-            segment_text = ""
             segment_chunks = chunks[start_idx:end_idx]
-            
-            for chunk in segment_chunks:
-                segment_text += chunk.text + " "
+            segment_text = " ".join([c.text for c in segment_chunks]).strip()
             
             # Use the endtime of the last chunk in the segment as the key
             last_chunk = chunks[end_idx - 1]
@@ -344,8 +376,6 @@ consensus_boundaries
                 endtime = last_chunk.timestamp[1]  # Get end_time from timestamp array
             else:
                 raise ValueError("Invalid timestamp format in chunk.")
-            # Clean up the segment text
-            segment_text = segment_text.strip()
             
             segments[str(endtime)] = segment_text
             

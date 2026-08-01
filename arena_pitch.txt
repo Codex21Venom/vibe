@@ -1,0 +1,12 @@
+Question: What problem are we solving?
+
+Answer:
+We are solving the dual challenge of study burnout and bad distractions faced by learners:
+
+1. The Monotony of Studying: Long hours of traditional studying quickly become repetitive, exhausting, and boring, causing mental fatigue and reduced retention.
+2. The Distraction of Standard Games: Taking breaks to play standard video games during study time often turns into a bad distraction that ruins productivity and disrupts learning momentum.
+
+Our Solution:
+The Arena Card Game bridges study time and gameplay into an active, gamified learning experience. By tying limited play tickets directly to course progression milestones, students earn game access as they learn. Utilizing Power Cards and Combos in strategic battles against AI opponents, learners revise course concepts interactively and stay motivated.
+
+Why study in a boring confined way when you can have fun studying
